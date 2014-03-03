@@ -7,7 +7,7 @@ class ColumnSelect(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent, self.columns, self.queries = parent, [], queries
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.names = data.names.keys()
+        self.names = data.names()
 
         new = wx.Button(self, -1, "+")
         new.Bind(wx.EVT_BUTTON, self.moreChoices)
@@ -18,20 +18,21 @@ class ColumnSelect(wx.Panel):
 
 
     def moreChoices(self, event):
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        new = []
         for i, q in enumerate(self.queries):
-            holder = wx.Panel(self)
-            bs = wx.BoxSizer(wx.HORIZONTAL)
-            bs.Add(wx.StaticText(holder, label=q))
-            self.columns.append(wx.ComboBox(holder, i, choices=self.names,
+            new.append(wx.ComboBox(self, i, choices=list(self.names),
                 style=wx.CB_DROPDOWN | wx.CB_READONLY))
-            bs.Add(self.columns[-1])
-            holder.SetSizer(bs)
+            hsize.Add(wx.StaticText(self, label=q))
+            hsize.Add(new[-1])
+            hsize.AddSpacer(5)
+        self.columns.append(tuple(new))
+        self.sizer.Add(hsize)
 
-            self.sizer.Add(holder)
         self.Layout()
 
     def onClose(self, event):
         self.Close(True)
 
     def GetValue(self):
-        return [c.GetValue() for c in self.columns]
+        return [tuple(d.GetValue() for d in c) for c in self.columns]

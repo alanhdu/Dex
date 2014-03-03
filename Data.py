@@ -1,39 +1,31 @@
 import numpy as np
 import wx
+import pandas as pd
 
 class Data():
-    parent, names, data = None, None, None
-    
+    parent, data = None, None
     def __init__(self, filename, parent):
         self.parent = parent
-        self.names = {}
-        self.data = np.genfromtxt(filename, delimiter=",", names=True)
-        labels = self.data.dtype.names
+        if filename.endswith("csv"):
+            # auto determine delimiter
+            self.data = pd.read_csv(filename, delimiter=None, sep=None)  
 
-        for i, label in enumerate(labels):
-            self.names[label] = i
-
-        # data in colums not rows
-        self.data = np.genfromtxt(filename, delimiter=",").transpose()
-        self.data = self.data[:,1:]  # ignore headers
     def __getitem__(self, key):
-        try:
+        try: 
             return self.data[key]
-        except ValueError: # assume key is string
-            try:
-                return self.data[self.names[key]]
-            except KeyError:
+        except KeyError:
+            try: 
+                return self.data[self.data.columns[key]] #allow numerical access
+            except (ValueError, IndexError):
                 dlg = wx.MessageDialog(self.parent, "Invalid Column", 
                         style= wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
-                raise IndexError
-        except IndexError:
-            dlg = wx.MessageDialog(self.parent, "Invalid Column", 
-                    style= wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
-            raise IndexError
+                raise KeyError
+    def __len__(self):
+        return len(self.data)
+    def names(self):
+        return self.data.columns
     def min(self):
         return np.nanmin(self.data)
     def max(self):

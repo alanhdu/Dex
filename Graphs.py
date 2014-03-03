@@ -16,7 +16,8 @@ class GraphMenu(wx.Menu):
         parent.Bind(wx.EVT_MENU, self.createBoxplot, boxplot)
 
     def createHist(self, event):
-        dlg = wx.Dialog(self.parent, title="Histogram input")
+        # TODO avoid hardcoding sizes. Find smart way to decide on sizes 
+        dlg = wx.Dialog(self.parent, title="Histogram input", size=(500, 200))
         cs = ColumnSelect(dlg, self.parent.data, ("Select Data",))
         hsize = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -31,11 +32,11 @@ class GraphMenu(wx.Menu):
         hsize1.Add(density)
         vsize1.Add(hsize1)
 
-        # TODO avoid hardcoding sizes. Play with fonts to get width
         hsize2 = wx.BoxSizer(wx.HORIZONTAL)
         hsize2.Add(wx.StaticText(histOptions, label="# of Bins"))
         numBins = wx.SpinCtrl(histOptions, min=1, max=999, size=(50, -1))
-        numBins.SetValue(np.sqrt(self.parent.data.shape()[1]))
+        # default numBins = sqrt(Num of data points)
+        numBins.SetValue(np.sqrt(len(self.parent.data)))
         hsize2.Add(numBins)
         vsize1.Add(hsize2)
 
@@ -45,6 +46,9 @@ class GraphMenu(wx.Menu):
         bandwidth.SetRange(-10, 10)
         hsize3.Add(bandwidth)
         vsize1.Add(hsize3)
+
+        subplots = wx.CheckBox(histOptions, label="Subplots? (Only for bars)")
+        vsize1.Add(subplots)
 
         histOptions.SetSizer(vsize1)
 
@@ -63,25 +67,30 @@ class GraphMenu(wx.Menu):
 
         dlg.SetSizer(vsize)
         dlg.ShowModal()
-        ds = cs.GetValue()
+        ds = list(zip(*cs.GetValue())[0])
         dlg.Destroy()
 
         # TODO legend
 
-        a = min(np.nanmin(self.parent.data[d]) for d in ds)
-        b = max(np.nanmax(self.parent.data[d]) for d in ds)
+        a = np.nanmin(self.parent.data[ds])
+        b = np.nanmax(self.parent.data[ds])
         x = np.arange(a, b, (b-a) / 1000.0)
-        bins = np.arange(a, b, float(b-a) / 10.0)
+        bins = np.arange(a, b, float(b-a) / numBins.GetValue())
 
-        for d in ds:
-            data = self.parent.data[d]
-            data = data[np.isfinite(data)]
-            if bars.GetValue():
-                plt.hist(data, bins=bins, alpha=0.7/len(ds), normed=density.GetValue())
-            if density.GetValue():
-                dens = stats.kde.gaussian_kde(data)
-                plt.plot(x, dens(x), color="b")
+        if subplots.GetValue():
+            self.parent.data[ds].hist()
+        else:
+            for d in ds:
+                data = self.parent.data[d]
+                data = data[np.isfinite(data)]
 
+                if bars.GetValue():
+                    plt.hist(data, bins=bins, alpha=0.7/len(ds), normed=density.GetValue())
+                if density.GetValue():
+                    dens = stats.kde.gaussian_kde(data)
+                    dens.set_bandwidth(bw_method=dens.factor * 
+                            np.exp(-0.2*bandwidth.GetValue()))
+                    plt.plot(x, dens(x), color="b")
         plt.show()
 
     def createBoxplot(self, event):
@@ -97,11 +106,8 @@ class GraphMenu(wx.Menu):
         dlg.SetSizer(vsize)
 
         dlg.ShowModal()
-        ds = cs.GetValue()
+        ds = list(zip(*cs.GetValue())[0])
         dlg.Destroy()
 
-        for d in ds:
-            data = self.parent.data[d]
-            data = data[np.isfinite(data)]
-            plt.boxplot(data)
+        self.parent.data[ds].boxplot()
         plt.show()

@@ -48,7 +48,7 @@ class MainWindow(wx.Frame):
             self.data = Data(dlg.GetPath(), self)
         dlg.Destroy()
         self.control.Clear()
-        self.control.WriteText("\n".join(x for x in self.data.names))
+        self.control.WriteText("\n".join(x for x in self.data.names()))
 
 
 app = wx.App(False)
