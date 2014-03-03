@@ -7,7 +7,6 @@ class MainWindow(wx.Frame):
     """ Master Window"""
     def __init__(self, size=(600, 600)):
         wx.Frame.__init__(self, None, title="OpenStat", size=size)
-        self.control = wx.TextCtrl(self, style=wx.TE_MULTILINE)
 
         menubar = wx.MenuBar()
         self.SetMenuBar(menubar)
@@ -31,6 +30,15 @@ class MainWindow(wx.Frame):
         menubar.Append(graphMenu, "&Graphs")
         self.Show(True)
 
+        bsizer = wx.BoxSizer()
+        self.control = wx.TextCtrl(self, 
+                style=wx.TE_MULTILINE | wx.TE_READONLY)
+        bsizer.Add(self.control, 1, wx.EXPAND)
+        bsizer.SetMinSize(size)
+
+        self.SetSizerAndFit(bsizer)
+
+
     def onExit(self, e):
         self.Close(True)
     def onOpen(self, event):
@@ -39,6 +47,8 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.data = Data(dlg.GetPath(), self)
         dlg.Destroy()
+        self.control.Clear()
+        self.control.WriteText("\n".join(x for x in self.data.names))
 
 
 app = wx.App(False)
