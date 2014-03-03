@@ -9,11 +9,17 @@ class GraphMenu(wx.Menu):
     def __init__(self, parent):
         wx.Menu.__init__(self)
         self.parent = parent
-        hist = self.Append(wx.NewId(), 'Histogram', "Histogram")
+        hist = self.Append(wx.NewId(), 'Histogram')
         parent.Bind(wx.EVT_MENU, self.createHist, hist)
 
-        boxplot = self.Append(wx.NewId(), 'Boxplot', "Boxplot")
+        boxplot = self.Append(wx.NewId(), 'Boxplot')
         parent.Bind(wx.EVT_MENU, self.createBoxplot, boxplot)
+
+        scatter = self.Append(wx.NewId(), "Scatter Plot")
+        parent.Bind(wx.EVT_MENU, self.createScatter, scatter)
+
+        time = self.Append(wx.NewId(), "Time Series")
+        parent.Bind(wx.EVT_MENU, self.createTime, time)
 
     def createHist(self, event):
         # TODO avoid hardcoding sizes. Find smart way to decide on sizes 
@@ -21,38 +27,36 @@ class GraphMenu(wx.Menu):
         cs = ColumnSelect(dlg, self.parent.data, ("Select Data",))
         hsize = wx.BoxSizer(wx.HORIZONTAL)
 
-        histOptions = wx.Panel(dlg)
+        # options
         vsize1 = wx.BoxSizer(wx.VERTICAL)
 
         hsize1 = wx.BoxSizer(wx.HORIZONTAL)
-        bars = wx.CheckBox(histOptions, label="Bars")
-        density = wx.CheckBox(histOptions, label="Density")
+        bars = wx.CheckBox(dlg, label="Bars")
+        density = wx.CheckBox(dlg, label="Density")
         bars.SetValue(True)
         hsize1.Add(bars)
         hsize1.Add(density)
         vsize1.Add(hsize1)
 
         hsize2 = wx.BoxSizer(wx.HORIZONTAL)
-        hsize2.Add(wx.StaticText(histOptions, label="# of Bins"))
-        numBins = wx.SpinCtrl(histOptions, min=1, max=999, size=(50, -1))
+        hsize2.Add(wx.StaticText(dlg, label="# of Bins"))
+        numBins = wx.SpinCtrl(dlg, min=1, max=999, size=(50, -1))
         # default numBins = sqrt(Num of data points)
         numBins.SetValue(np.sqrt(len(self.parent.data)))
         hsize2.Add(numBins)
         vsize1.Add(hsize2)
 
         hsize3 = wx.BoxSizer(wx.HORIZONTAL)
-        hsize3.Add(wx.StaticText(histOptions, label="Density Bandwidth"))
-        bandwidth = wx.SpinCtrl(histOptions, value="0", min=-10, max=10, size=(50, -1))
+        hsize3.Add(wx.StaticText(dlg, label="Density Bandwidth"))
+        bandwidth = wx.SpinCtrl(dlg, value="0", min=-10, max=10, size=(50, -1))
         bandwidth.SetRange(-10, 10)
         hsize3.Add(bandwidth)
         vsize1.Add(hsize3)
 
-        subplots = wx.CheckBox(histOptions, label="Subplots? (Only for bars)")
+        subplots = wx.CheckBox(dlg, label="Subplots? (Only for bars)")
         vsize1.Add(subplots)
 
-        histOptions.SetSizer(vsize1)
-
-        hsize.Add(histOptions)
+        hsize.Add(vsize1)
         hsize.AddSpacer(20)
         hsize.Add(cs, flag=wx.EXPAND)
 
@@ -94,7 +98,7 @@ class GraphMenu(wx.Menu):
         plt.show()
 
     def createBoxplot(self, event):
-        dlg = wx.Dialog(self.parent, title="Boxplot Input")
+        dlg = wx.Dialog(self.parent, title="Boxplot Input", size=(500, 200))
         cs = ColumnSelect(dlg, self.parent.data, ("Select Data",))
         vsize = wx.BoxSizer(wx.VERTICAL)
         vsize.Add(cs, 1, wx.EXPAND)
@@ -111,3 +115,62 @@ class GraphMenu(wx.Menu):
 
         self.parent.data[ds].boxplot()
         plt.show()
+
+    def createScatter(self, event):
+        dlg = wx.Dialog(self.parent, title="Scatterplot Input", size=(700, 200))
+        cs = ColumnSelect(dlg, self.parent.data, ("X","Y"))
+        vsize = wx.BoxSizer(wx.VERTICAL)
+
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        regress = wx.CheckBox(dlg, label="Add Regression Lines?")
+        hsize.Add(regress)
+        hsize.AddSpacer(20)
+        hsize.Add(cs)
+
+        vsize.Add(hsize, 1, wx.EXPAND)
+
+        ok = wx.Button(dlg, -1, "OK")
+        ok.Bind(wx.EVT_BUTTON, lambda x: dlg.Close())
+        vsize.Add(ok)
+
+        dlg.SetSizer(vsize)
+
+        dlg.ShowModal()
+        ds = cs.GetValue()
+        dlg.Destroy()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+
+        # TODO get better color scheme
+        colors = "rgby"
+
+        for i, (x, y) in enumerate(ds):
+            ax.scatter(self.parent.data[x], self.parent.data[y], marker="o", 
+                    color = colors[i % len(colors)], label=y)
+            if regress.GetValue():
+                line = np.poly1d(np.polyfit(self.parent.data[x], self.parent.data[y], 1))
+                ax.plot(self.parent.data[x], line(self.parent.data[x]))
+        ax.legend(loc='best')
+        ax.figure.show()
+
+    def createTime(self, event):
+        dlg = wx.Dialog(self.parent, title="Time Series Input", size=(500, 200))
+        cs = ColumnSelect(dlg, self.parent.data, ("Select Data",))
+        vsize = wx.BoxSizer(wx.VERTICAL)
+        vsize.Add(cs, 1, wx.EXPAND)
+
+        ok = wx.Button(dlg, -1, "OK")
+        ok.Bind(wx.EVT_BUTTON, lambda x: dlg.Close())
+        vsize.Add(ok)
+
+        dlg.SetSizer(vsize)
+
+        dlg.ShowModal()
+        ds = list(zip(*cs.GetValue())[0])
+        dlg.Destroy()
+
+        self.parent.data[ds].plot()
+        plt.legend(loc='best')
+        plt.show()
+
