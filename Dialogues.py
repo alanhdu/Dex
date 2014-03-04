@@ -36,3 +36,32 @@ class ColumnSelect(wx.Panel):
 
     def GetValue(self):
         return [tuple(d.GetValue() for d in c) for c in self.columns]
+
+class GraphDialog(wx.Dialog):
+    hsize, options, cs = None, None, None
+    def __init__(self, parent, title, queries, size=wx.DefaultSize):
+        wx.Dialog.__init__(self, parent, -1, title, size=size)
+        self.cs = ColumnSelect(self, parent.data, queries)
+
+        vsize = wx.BoxSizer(wx.VERTICAL)
+        self.hsize = wx.BoxSizer(wx.HORIZONTAL)
+        options = wx.Panel(self)
+        self.hsize.Add(options)
+        self.hsize.AddSpacer(10)
+        self.hsize.Add(self.cs, 1, wx.EXPAND)
+
+        vsize.Add(self.hsize, 1, wx.EXPAND)
+
+        ok = wx.Button(self, -1, "OK")
+        ok.Bind(wx.EVT_BUTTON, self.onClose)
+        vsize.Add(ok)
+
+        self.SetSizer(vsize)
+    def onClose(self, event):
+        self.Close()
+    def Add(self, *args):
+        self.options.Add(*args)
+    def GetValue(self):
+        return self.cs.GetValue()
+
+

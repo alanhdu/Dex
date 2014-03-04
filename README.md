@@ -2,7 +2,8 @@ OpenStat
 ========
 
 Dependencies:
-    * numpy
-    * scipy
-    * matplotlib
-    * pandas
+* numpy
+* scipy
+* matplotlib
+* pandas
+* seaborn
