@@ -42,11 +42,11 @@ class GraphDialog(wx.Dialog):
     def __init__(self, parent, title, queries, size=wx.DefaultSize):
         wx.Dialog.__init__(self, parent, -1, title, size=size)
         self.cs = ColumnSelect(self, parent.data, queries)
+        self.options = wx.BoxSizer(wx.VERTICAL)
 
         vsize = wx.BoxSizer(wx.VERTICAL)
         self.hsize = wx.BoxSizer(wx.HORIZONTAL)
-        options = wx.Panel(self)
-        self.hsize.Add(options)
+        self.hsize.Add(self.options)
         self.hsize.AddSpacer(10)
         self.hsize.Add(self.cs, 1, wx.EXPAND)
 
@@ -55,12 +55,23 @@ class GraphDialog(wx.Dialog):
         ok = wx.Button(self, -1, "OK")
         ok.Bind(wx.EVT_BUTTON, self.onClose)
         vsize.Add(ok)
-
         self.SetSizer(vsize)
+
+
     def onClose(self, event):
         self.Close()
     def Add(self, *args):
         self.options.Add(*args)
+        self.options.Layout()
+        self.Layout()
+    def AddSpinCtrl(self, label, min, max, initial=0, size=wx.DefaultSize):
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        hsize.Add(wx.StaticText(self, label=label))
+        ctrl = wx.SpinCtrl(self, min=min, max=max, initial=initial, size=size)
+        hsize.Add(ctrl, flag=wx.ALIGN_RIGHT)
+        self.Add(hsize)
+        return ctrl
+
     def GetValue(self):
         return self.cs.GetValue()
 
