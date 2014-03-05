@@ -30,7 +30,5 @@ class Data():
         return np.nanmin(self.data)
     def max(self):
         return np.nanmax(self.data)
-    def size(self):
-        return self.data.size
     def shape(self):
         return self.data.shape

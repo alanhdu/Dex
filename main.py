@@ -1,11 +1,15 @@
 import wx
+import wx.lib.sheet
 from Data import Data
 from Stats import StatsMenu
 from Graphs import GraphMenu
+import warnings
+warnings.simplefilter("error")
 
 class MainWindow(wx.Frame):
     """ Master Window"""
-    def __init__(self, size=(600, 600)):
+    output, sheet = None, None
+    def __init__(self, size=(1000, 900)):
         wx.Frame.__init__(self, None, title="OpenStat", size=size)
 
         menubar = wx.MenuBar()
@@ -23,20 +27,28 @@ class MainWindow(wx.Frame):
         edit = wx.Menu()
         menubar.Append(edit, "&Edit")
 
-        statMenu = StatsMenu()
+        statMenu = StatsMenu(self)
         menubar.Append(statMenu, "&Stats")
 
         graphMenu = GraphMenu(self)
         menubar.Append(graphMenu, "&Graphs")
         self.Show(True)
 
-        bsizer = wx.BoxSizer()
-        self.control = wx.TextCtrl(self, 
+        bsizer = wx.BoxSizer(wx.VERTICAL)
+        self.output = wx.TextCtrl(self, 
                 style=wx.TE_MULTILINE | wx.TE_READONLY)
-        bsizer.Add(self.control, 1, wx.EXPAND)
-        bsizer.SetMinSize(size)
+        # use monospace font
+        f = wx.Font(12, wx.MODERN, wx.NORMAL, wx.NORMAL)
+        self.output.SetFont(f)
+        self.sheet = wx.lib.sheet.CSheet(self)
+        self.sheet.SetNumberRows(14)
+        self.sheet.SetNumberCols(15)
+        self.sheet.EnableEditing(False)
+        bsizer.Add(self.output, 1, wx.EXPAND)
+        bsizer.AddSpacer(30)
+        bsizer.Add(self.sheet, 1, wx.EXPAND)
 
-        self.SetSizerAndFit(bsizer)
+        self.SetSizer(bsizer)
 
 
     def onExit(self, e):
@@ -47,9 +59,16 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.data = Data(dlg.GetPath(), self)
         dlg.Destroy()
-        self.control.Clear()
-        self.control.WriteText("\n".join(x for x in self.data.names()))
+        self.sheet.Clear()
 
+        rows, cols = self.data.shape()
+        self.sheet.SetNumberCols(cols)
+        self.sheet.SetNumberRows(rows)
+
+        for i, name in enumerate(self.data.names()):
+            self.sheet.SetColLabelValue(i, name)
+            for j, val in enumerate(self.data[name]):
+                self.sheet.SetCellValue(j, i, str(val))
 
 app = wx.App(False)
 frame = MainWindow()
