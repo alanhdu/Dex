@@ -5,6 +5,9 @@ from scipy import stats
 import numpy as np
 import seaborn as sns
 import pandas as pd
+import warnings
+
+warnings.simplefilter("error", np.RankWarning)
 
 sns.set(style="whitegrid")
 
@@ -184,6 +187,7 @@ class GraphMenu(wx.Menu):
                         style = wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
+                plt.show()
 
     def createMatrix(self, event):
         # TODO Fix ugly gridlines. sns.setStyle('nogrid') failed

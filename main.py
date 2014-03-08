@@ -3,8 +3,6 @@ import wx.lib.sheet
 from Data import Data
 from Stats import StatsMenu
 from Graphs import GraphMenu
-import warnings
-warnings.simplefilter("error")
 
 class MainWindow(wx.Frame):
     """ Master Window"""

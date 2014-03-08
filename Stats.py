@@ -1,10 +1,12 @@
 import wx
 from Data import Data
-from Dialogues import GraphDialog, StatTestDialog, SampleStats, SummaryStats
+from Dialogues import GraphDialog, StatTestDialog, SampleStats, SummaryStats, RegressDialog
 import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
 import seaborn as sns
+import statsmodels.api as sm
+import pandas as pd
 
 class StatsMenu(wx.Menu):
     parent = None
@@ -27,8 +29,12 @@ class StatsMenu(wx.Menu):
                 self.Append(wx.NewId(), "2-Sample T-test"))
         parent.Bind(wx.EVT_MENU, self.ttest_matched, 
                 self.Append(wx.NewId(), "Matched-Pair T-test"))
+        self.AppendSeparator()
 
         # Regression
+        parent.Bind(wx.EVT_MENU, self.linReg, 
+                self.Append(wx.NewId(), "Linear Regression"))
+        self.AppendSeparator()
 
 
         # Nonparametric tests
@@ -282,4 +288,60 @@ class StatsMenu(wx.Menu):
             sns.distplot(data.astype(float), 
                     kde_kws={"label":"{0} - {1}".format(info[0][0], info[1][0])})
             plt.show()
+        dlg.Destroy()
+    def linReg(self, event):
+        dlg = RegressDialog(self.parent, "Linear Regression") 
+        if dlg.ShowModal() == wx.ID_OK:
+            y, xs = dlg.GetValue()
+            data = self.parent.data[list(xs) + [y]].dropna()
+            Y = data[y]
+            Xs =data[list(xs)]
+            results = sm.OLS(Y, Xs).fit()
+            s = results.summary(title="Linear Regression for " + y)
+            t0 = str(s.tables[0]).split("\n")[0]
+            t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
+            t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
+            self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
+            res = Y - results.predict()
+            resS = (res - res.mean()) / res.std()
+            XS = np.matrix(Xs.as_matrix())
+
+            H = np.diagonal(XS * np.linalg.inv(XS.T* XS) * XS.T)
+            threshold = 2 * float(len(xs) + 1) / len(Y)
+            # from wikipedia. No idea how H or threshold are chosen
+
+            self.parent.output.AppendText("\nUnusual Observations (L for high leverage, R for high residual)\n")
+            self.parent.output.AppendText("{:<5} {:<8} {:<10} {:<10} {:<4}\n".format(
+                "Obs #", y, "Resid", "Std Resid", "Type"))
+
+            temp = "{:<5} {:<8.4f} {:<10.4f} {:<10.4f} {:<4}\n"
+            for i, (r, h) in enumerate(zip(resS, H)):
+                weird = False
+                R, L = abs(r) > 2.5, h > threshold
+                if R or L:
+                    t = ""
+                    if R:
+                        t += "R"
+                    if L:
+                        t += "L"
+                    self.parent.output.AppendText(temp.format(i+1, Y[i], 
+                        res[i], resS[i], t))
+
+
+            fig, axes = plt.subplots(nrows=2, ncols=2)
+            plt.subplot(axes[0, 0])
+            stats.probplot(res, plot=plt)
+            plt.subplot(axes[1, 0])
+            sns.distplot(res)
+            plt.subplot(axes[0, 1])
+            plt.scatter(results.predict(), res)
+            """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
+            df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
+            sns.lmplot("Predicted", "Residual", df)
+            """
+
+            res.plot(ax=axes[1, 1])
+
+            plt.show()
+
         dlg.Destroy()

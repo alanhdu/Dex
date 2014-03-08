@@ -1,11 +1,14 @@
 import wx
 
 class ColumnSelect(wx.Panel):
-    orient, queries, parent, columns, names = None, None, None, None, None
+    queries, parent, columns, names = None, None, None, None
     sizer = None
-    def __init__(self, parent, data, queries, add=True, orient=wx.HORIZONTAL):
+    def __init__(self, parent, data, queries, add=True):
         wx.Panel.__init__(self, parent)
         self.parent, self.columns, self.queries = parent, [], queries
+
+        vsize = wx.BoxSizer(wx.VERTICAL)
+        self.sizer = wx.GridSizer(rows=len(queries), cols=1)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.names = data.names()
 
@@ -13,24 +16,31 @@ class ColumnSelect(wx.Panel):
             new = wx.Button(self, -1, "+ More Data Sets")
             new.Bind(wx.EVT_BUTTON, self.moreChoices)
             self.sizer.Add(new)
+        else:
+            # insert button's height of space
+            self.sizer.AddSpacer(wx.Button.GetDefaultSize()[1]) # 
 
-        self.orient = orient
+
+        hsize = wx.GridSizer(cols=len(self.queries))
+        for q in self.queries:
+            hsize.Add(wx.StaticText(self, label=q))
+        self.sizer.Add(hsize, flag=wx.EXPAND)
+
         self.SetSizer(self.sizer)
         self.moreChoices(None)
 
     def moreChoices(self, event):
-        hsize = wx.BoxSizer(self.orient)
+        hsize = wx.GridSizer(cols=len(self.queries))
         new = []
-        for i, q in enumerate(self.queries):
-            new.append(wx.ComboBox(self, i, choices=list(self.names),
+        for q in self.queries:
+            new.append(wx.ComboBox(self, choices=list(self.names),
                 style=wx.CB_DROPDOWN | wx.CB_READONLY))
-            hsize.Add(wx.StaticText(self, label=q))
-            hsize.Add(new[-1])
-            hsize.AddSpacer(5)
+            hsize.Add(new[-1], 1, flag=wx.EXPAND)
         self.columns.append(tuple(new))
         self.sizer.Add(hsize)
 
         self.Layout()
+        self.parent.Layout()
 
     def onClose(self, event):
         self.Close(True)
@@ -128,7 +138,6 @@ class SampleStats(wx.Panel):
             for s in samp:
                 s.Enable(b)
 
-
 class StatTestDialog(wx.Dialog):
     hypo, Ho, stats, parent, samps = None, None, None, None, None
     sample, event = None, None
@@ -224,3 +233,27 @@ class StatTestDialog(wx.Dialog):
     def onSummary(self, event):
         self.samps.Enable(False)
         self.stats.Enable(True)
+
+class RegressDialog(wx.Dialog):
+    parent, xs, y = None, None, None
+    def __init__(self, parent, title, size=(700, 300)):
+        wx.Dialog.__init__(self, parent, -1, title, size=size)
+        self.parent = parent
+        self.xs = ColumnSelect(self, parent.data, 
+                queries=("Select Explanatory Variable(s)",), add=True)
+        self.y = ColumnSelect(self, parent.data, 
+                    queries=("Select Dependent Variable",), add=False)
+
+        vsize = wx.BoxSizer(wx.VERTICAL)
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        hsize.Add(self.y, 1, wx.EXPAND)
+        hsize.AddSpacer(10)
+        hsize.Add(self.xs, 1, wx.EXPAND)
+
+        vsize.Add(hsize)
+
+        vsize.Add(self.CreateSeparatedButtonSizer(flags=wx.OK | wx.CANCEL))
+        self.SetSizer(vsize)
+
+    def GetValue(self):
+        return (self.y.GetValue()[0][0], zip(*self.xs.GetValue())[0])
