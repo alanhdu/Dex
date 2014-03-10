@@ -12,10 +12,10 @@ class Data():
 
     def __getitem__(self, key):
         try: 
-            return self.data[key]
+            return self.data[key].dropna()
         except KeyError:
             try: 
-                return self.data[self.data.columns[key]] #allow numerical access
+                return self.data[self.data.columns[key]].dropna() #allow numerical access
             except (ValueError, IndexError):
                 dlg = wx.MessageDialog(self.parent, "Invalid Column", 
                         style= wx.OK | wx.ICON_ERROR)

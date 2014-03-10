@@ -6,6 +6,7 @@ from scipy import stats
 from matplotlib import pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import pandas as pd
 
 class StatsMenu(wx.Menu):
@@ -34,13 +35,19 @@ class StatsMenu(wx.Menu):
         # Regression
         parent.Bind(wx.EVT_MENU, self.linReg, 
                 self.Append(wx.NewId(), "Linear Regression"))
+        parent.Bind(wx.EVT_MENU, self.linRegR, 
+                self.Append(wx.NewId(), "Linear Regression (for R or Patsy aficionados)"))
+        self.AppendSeparator()
+
+        # Classifiers
+        self.AppendSeparator()
+
+        # Nonparametric tests
         self.AppendSeparator()
 
 
-        # Nonparametric tests
-
-
         # Bayesian Inference
+        self.AppendSeparator()
 
     def describe(self, event):
         dlg = GraphDialog(self.parent, "Descriptive Statistics", 
@@ -295,7 +302,8 @@ class StatsMenu(wx.Menu):
             y, xs = dlg.GetValue()
             data = self.parent.data[list(xs) + [y]].dropna()
             Y = data[y]
-            Xs =data[list(xs)]
+            Xs = data[list(xs)]
+            Xs = sm.add_constant(Xs, prepend=False)
             results = sm.OLS(Y, Xs).fit()
             s = results.summary(title="Linear Regression for " + y)
             t0 = str(s.tables[0]).split("\n")[0]
@@ -343,5 +351,21 @@ class StatsMenu(wx.Menu):
             res.plot(ax=axes[1, 1])
 
             plt.show()
+
+        dlg.Destroy()
+    def linRegR(self, event):
+        # would have to mess with Patsy formula parser to get more powerful...
+        # too much work
+        dlg = wx.TextEntryDialog(self.parent, "Enter the linear regression formula")
+        if dlg.ShowModal() == wx.ID_OK:
+            mod = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
+            res = mod.fit()
+
+            s = res.summary()
+
+            t0 = str(s.tables[0]).split("\n")[0]
+            t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
+            t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
+            self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
 
         dlg.Destroy()

@@ -1,6 +1,7 @@
 import wx
 from matplotlib import pyplot as plt
 from Dialogues import GraphDialog
+from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
 import numpy as np
 import seaborn as sns
@@ -8,7 +9,6 @@ import pandas as pd
 import warnings
 
 warnings.simplefilter("error", np.RankWarning)
-
 sns.set(style="whitegrid")
 
 class GraphMenu(wx.Menu):
@@ -41,6 +41,8 @@ class GraphMenu(wx.Menu):
         self.AppendSeparator()
         parent.Bind(wx.EVT_MENU, self.createBiDensity, 
                 self.Append(wx.NewId(), "Bivariate Density Fit"))
+        parent.Bind(wx.EVT_MENU, self.create3DScatter,
+                self.Append(wx.NewId(), "3D Scatter Plot"))
 
 
     def createHist(self, event):
@@ -180,7 +182,7 @@ class GraphMenu(wx.Menu):
                 if ci < 100 and regress:
                     sns.lmplot("x", "y", snData, color="group", ci=ci, order=order)
                 else:
-                    sns.lmplot("x", "y", snData, fitRegress=regress, ci=None, order=order)
+                    sns.lmplot("x", "y", snData, fit_reg=regress, ci=None, order=order)
                 plt.show()
             except np.RankWarning:
                 dlg = wx.MessageDialog(self.parent, "Polynomial Degree Too High",
@@ -209,8 +211,8 @@ class GraphMenu(wx.Menu):
         dlg.Add(fill)
 
         if dlg.ShowModal() == wx.ID_OK:
-            (x1, x2, y), fill = dlg.GetValue(), fill.GetValue()
-            data = self.parent.data[list({b for bs in ds for b in bs})].astype(float)
+            (x1, x2, y), fill = dlg.GetValue()[0], fill.GetValue()
+            data = self.parent.data[[x1, x2, y]].astype(float)
             dlg.Destroy()
 
             temp = data[[x1, x2, y]].dropna(axis=0)
@@ -233,3 +235,15 @@ class GraphMenu(wx.Menu):
                 sns.kdeplot(temp)
             plt.show()
 
+    def create3DScatter(self, event):
+        dlg = GraphDialog(self.parent, "3D Scatter Plot Fit", ("X1", "X2", "Y"),
+                size=(700, 200), add=False)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection="3d")
+
+            x1, x2, y = dlg.GetValue()[0]
+            data = self.parent.data[[x1, x2, y]]
+            ax.scatter(data[x1], data[x2], data[y])
+            plt.show()
