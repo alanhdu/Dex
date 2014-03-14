@@ -310,7 +310,7 @@ class StatsMenu(wx.Menu):
             t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
             t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
             self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
-            res = Y - results.predict()
+            res = results.resid
             resS = (res - res.mean()) / res.std()
             XS = np.matrix(Xs.as_matrix())
 
@@ -335,7 +335,6 @@ class StatsMenu(wx.Menu):
                     self.parent.output.AppendText(temp.format(i+1, Y[i], 
                         res[i], resS[i], t))
 
-
             fig, axes = plt.subplots(nrows=2, ncols=2)
             plt.subplot(axes[0, 0])
             stats.probplot(res, plot=plt)
@@ -359,13 +358,29 @@ class StatsMenu(wx.Menu):
         dlg = wx.TextEntryDialog(self.parent, "Enter the linear regression formula")
         if dlg.ShowModal() == wx.ID_OK:
             mod = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
-            res = mod.fit()
-
-            s = res.summary()
+            results = mod.fit()
+            res = results.resid
+            s = results.summary()
 
             t0 = str(s.tables[0]).split("\n")[0]
             t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
             t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
             self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
+
+            fig, axes = plt.subplots(nrows=2, ncols=2)
+            plt.subplot(axes[0, 0])
+            stats.probplot(res, plot=plt)
+            plt.subplot(axes[1, 0])
+            sns.distplot(res)
+            plt.subplot(axes[0, 1])
+            plt.scatter(results.predict(), res)
+            """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
+            df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
+            sns.lmplot("Predicted", "Residual", df)
+            """
+
+            res.plot(ax=axes[1, 1])
+
+            plt.show()
 
         dlg.Destroy()
