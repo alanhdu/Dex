@@ -53,7 +53,7 @@ class MainWindow(wx.Frame):
         self.Close(True)
     def onOpen(self, event):
         self.dirname = ""
-        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv|*.tsv", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.data = Data(dlg.GetPath(), self)
         dlg.Destroy()
