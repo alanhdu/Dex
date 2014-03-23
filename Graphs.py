@@ -70,19 +70,26 @@ class GraphMenu(wx.Menu):
                 lambda e: bandwidth.Enable(density.GetValue()))
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
-            dlg.Destroy()
-
-            a = np.nanmin(self.parent.data[ds])
-            b = np.nanmax(self.parent.data[ds])
-            x = np.arange(a, b, (b-a) / 1000.0)
-            bins = np.arange(a, b, float(b-a) / numBins.GetValue())
-
+            ds = [d[0] for d in dlg.GetName()]
+            # account for grouping
+            groups, datas = dlg.GetValue(self.parent.data)
             bars, density = bars.GetValue(), density.GetValue() 
             bandwidth = np.exp(-0.2 * bandwidth.GetValue())
+            if groups:
+                ds = self._groupLabels(ds, groups)
+                newDs = []
+                for d in ds:
+                    newDs += [d + "-" + g for g in groups]
+                ds = newDs
+            dlg.Destroy()
 
-            for d in ds:
-                data = self.parent.data[d].astype(float)
+            # d.min() gets minimum for each column. d.min.min() gets global min
+            a, b = min(d.min().min() for d in datas), max(d.max().max() for d in datas)
+            bins = np.arange(a, b, float(b-a) / numBins.GetValue())
+
+            for d, data in zip(ds, datas):
+                data = data[data.columns[0]]
+                d, data = d, data.astype(float)
                 # astype float b/c of bug in seaborn. 
 
                 if bars and not density:
@@ -96,31 +103,43 @@ class GraphMenu(wx.Menu):
                         sns.distplot(data, bins=bins, kde_kws={"bw":bw, "label":d})
             plt.legend(loc='best')
             plt.show()
+    
+    def _groupLabels(self, labels, groups):
+        new = []
+        for l in labels:
+            new += [l + "-" + str(g) for g in groups]
+        return new
 
     def createBoxplot(self, event):
         dlg = GraphDialog(self.parent, "Boxplot Input", queries=("Select Data",),
                 size=(500, 200))
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
+            ds = [d[0] for d in dlg.GetName()]
+            groups, datas = dlg.GetValue(self.parent.data)
+            if groups:
+                ds = self._groupLabels(ds, groups)
             dlg.Destroy()
 
-            sns.boxplot(self.parent.data[ds])
+            sns.boxplot(datas, names=ds)
             plt.show()
 
     def createViolin(self, event):
         dlg = GraphDialog(self.parent, "Violinplot Input", ("Select Data",),
                 size=(500, 200))
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
+            ds = [d[0] for d in dlg.GetName()]
+            groups, datas = dlg.GetValue(self.parent.data)
+            if groups:
+                ds = self._groupLabels(ds, groups)
             dlg.Destroy()
 
             # TODO Allow user input for bandwidth
-            sns.violinplot(self.parent.data[ds])
+            sns.violinplot(datas, names=ds)
             plt.show()
 
     def createQQ(self, event):
         dlg = GraphDialog(self.parent, "QQ Plot Input", ("Select Data",),
-                size=(700, 200), add=False)
+                size=(700, 200), add=False, groups=False)
         dists = [dist for dist in dir(stats.distributions) 
                 if dist + "_gen" in dir(stats.distributions) and "_" not in dist]
 
@@ -131,13 +150,13 @@ class GraphMenu(wx.Menu):
         dlg.Add(dist)
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
+            ds = dlg.GetName()
             dist = dist.GetValue()
             pdf = stats.distributions.__dict__[dist] #hacky, but works
             dlg.Destroy()
 
 
-            for d in ds:
+            for d in (x[0] for x in ds):
                 data = self.parent.data[d]
                 data = data[np.isfinite(data)]
                 stats.probplot(data, pdf.fit(data), dist, plot=plt)
@@ -145,18 +164,17 @@ class GraphMenu(wx.Menu):
 
     def createTime(self, event):
         dlg = GraphDialog(self.parent, "Time Series Input", ("Select Data",), 
-                size=(500, 200))
+                size=(500, 200), groups=False)
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
+            ds = [x[0] for x in dlg.GetName()]
             dlg.Destroy()
-
             self.parent.data[ds].plot()
             plt.show()
 
     def createScatter(self, event):
         dlg = GraphDialog(self.parent, "Scatterplot Input", ("X", "Y"),
-                size=(700, 200))
+                size=(700, 200), groups=False)
         regress = wx.CheckBox(dlg, label="Add Regression Polynomial?")
         regress.SetValue(True)
         ci = dlg.AddSpinCtrl("Confidence (>=100 for None)", 0, 101, 95)
@@ -167,7 +185,7 @@ class GraphMenu(wx.Menu):
         dlg.Add(regress)
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds = dlg.GetValue()
+            ds = dlg.GetName()
             dlg.Destroy()
             regress, ci, order = regress.GetValue(), ci.GetValue(), order.GetValue()
 
@@ -194,10 +212,10 @@ class GraphMenu(wx.Menu):
     def createMatrix(self, event):
         # TODO Fix ugly gridlines. sns.setStyle('nogrid') failed
         dlg = GraphDialog(self.parent, "Matrix Plot Input", ("Select Data",), 
-                size=(500, 200))
+                size=(500, 200), groups=False)
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds = list(zip(*dlg.GetValue())[0])
+            ds = [d[0] for d in dlg.GetName()]
             dlg.Destroy()
 
             pd.tools.plotting.scatter_matrix(self.parent.data[ds])
@@ -205,13 +223,13 @@ class GraphMenu(wx.Menu):
 
     def createInteraction(self, event):
         dlg = GraphDialog(self.parent, "Matrix Plot Input", ("X1", "X2", "Y"),
-                size=(700, 200), add=False)
+                size=(700, 200), add=False, groups=False)
         fill = wx.CheckBox(dlg, label="Fill")
         fill.SetValue(True)
         dlg.Add(fill)
 
         if dlg.ShowModal() == wx.ID_OK:
-            (x1, x2, y), fill = dlg.GetValue()[0], fill.GetValue()
+            (x1, x2, y), fill = dlg.GetName()[0], fill.GetValue()
             data = self.parent.data[[x1, x2, y]].astype(float)
             dlg.Destroy()
 
@@ -221,12 +239,12 @@ class GraphMenu(wx.Menu):
             plt.show()
     def createBiDensity(self, event):
         dlg = GraphDialog(self.parent, "Bivariate Density Fit", ("X1", "X2"),
-                size=(700, 200))
+                size=(700, 200), add=False, groups=False)
         fill = wx.CheckBox(dlg, label="Fill")
         dlg.Add(fill)
 
         if dlg.ShowModal() == wx.ID_OK:
-            ds, fill = dlg.GetValue(), fill.GetValue()
+            ds, fill = dlg.GetName(), fill.GetValue()
             data = self.parent.data[list({b for bs in ds for b in bs})].astype(float)
             dlg.Destroy()
 
@@ -237,13 +255,13 @@ class GraphMenu(wx.Menu):
 
     def create3DScatter(self, event):
         dlg = GraphDialog(self.parent, "3D Scatter Plot Fit", ("X1", "X2", "Y"),
-                size=(700, 200), add=False)
+                size=(700, 200), add=False, groups=False)
 
         if dlg.ShowModal() == wx.ID_OK:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
 
-            x1, x2, y = dlg.GetValue()[0]
+            x1, x2, y = dlg.GetName()[0]
             data = self.parent.data[[x1, x2, y]]
             ax.scatter(data[x1], data[x2], data[y])
             plt.show()

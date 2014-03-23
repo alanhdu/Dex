@@ -20,7 +20,6 @@ class ColumnSelect(wx.Panel):
             # insert button's height of space
             self.sizer.AddSpacer(wx.Button.GetDefaultSize()[1]) # 
 
-
         hsize = wx.GridSizer(cols=len(self.queries))
         for q in self.queries:
             hsize.Add(wx.StaticText(self, label=q))
@@ -33,7 +32,7 @@ class ColumnSelect(wx.Panel):
         hsize = wx.GridSizer(cols=len(self.queries))
         new = []
         for q in self.queries:
-            new.append(wx.ComboBox(self, choices=list(self.names),
+            new.append(wx.ComboBox(self, choices=[""] + list(self.names),
                 style=wx.CB_DROPDOWN | wx.CB_READONLY))
             hsize.Add(new[-1], 1, flag=wx.EXPAND)
         self.columns.append(tuple(new))
@@ -50,11 +49,16 @@ class ColumnSelect(wx.Panel):
 
 # TODO implement some kind of global graph preferences
 class GraphDialog(wx.Dialog):
-    hsize, options, cs = None, None, None
-    def __init__(self, parent, title, queries, size=wx.DefaultSize, add=True):
+    group, hsize, options, cs = None, None, None, None
+    def __init__(self, parent, title, queries, size=wx.DefaultSize, add=True, groups=True):
         wx.Dialog.__init__(self, parent, -1, title, size=size)
         self.cs = ColumnSelect(self, parent.data, queries, add=add)
         self.options = wx.BoxSizer(wx.VERTICAL)
+        if groups:
+            self.group = ColumnSelect(self, parent.data, ["Group by"], add=False)
+            self.options.Add(self.group)
+        else:
+            self.group = None
 
         vsize = wx.BoxSizer(wx.VERTICAL)
         self.hsize = wx.BoxSizer(wx.HORIZONTAL)
@@ -69,8 +73,8 @@ class GraphDialog(wx.Dialog):
 
     def onClose(self, event):
         self.Close()
-    def Add(self, *args):
-        self.options.Add(*args)
+    def Add(self, *args, **kwargs):
+        self.options.Add(*args, **kwargs)
         self.options.Layout()
         self.Layout()
     def AddSpinCtrl(self, label, min, max, initial=0, size=wx.DefaultSize):
@@ -80,8 +84,26 @@ class GraphDialog(wx.Dialog):
         hsize.Add(ctrl, flag=wx.ALIGN_RIGHT)
         self.Add(hsize)
         return ctrl
-    def GetValue(self):
+    def GetValue(self, data):
+        val = []
+        g = self.GetGroup()
+        if g:
+            for cs in self.GetName():
+                ds = data[list(cs) + [g]]
+                grouped = ds.groupby(g)
+                val += [grouped.get_group(group)[list(cs)] for group in grouped.groups]
+            g = list(ds.groupby(g).groups)
+        else:
+            for cs in self.GetName():
+                val.append(data[list(cs)].dropna())
+        return g, val
+    def GetName(self):
         return self.cs.GetValue()
+    def GetGroup(self):
+        if self.group:
+            return self.group.GetValue()[0][0]
+        else:
+            return None
 
 class SummaryStats(wx.Panel):
     sizer, statitics = None, None

@@ -45,7 +45,6 @@ class StatsMenu(wx.Menu):
         # Nonparametric tests
         self.AppendSeparator()
 
-
         # Bayesian Inference
         self.AppendSeparator()
 
@@ -302,56 +301,62 @@ class StatsMenu(wx.Menu):
             y, xs = dlg.GetValue()
             data = self.parent.data[list(xs) + [y]].dropna()
             Y = data[y]
-            Xs = data[list(xs)]
-            Xs = sm.add_constant(Xs, prepend=False)
+            Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.OLS(Y, Xs).fit()
-            s = results.summary(title="Linear Regression for " + y)
-            t0 = str(s.tables[0]).split("\n")[0]
-            t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
-            t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
-            self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
-            res = results.resid
-            resS = (res - res.mean()) / res.std()
-            XS = np.matrix(Xs.as_matrix())
-
-            H = np.diagonal(XS * np.linalg.inv(XS.T* XS) * XS.T)
-            threshold = 2 * float(len(xs) + 1) / len(Y)
-            # from wikipedia. No idea how H or threshold are chosen
-
-            self.parent.output.AppendText("\nUnusual Observations (L for high leverage, R for high residual)\n")
-            self.parent.output.AppendText("{:<5} {:<8} {:<10} {:<10} {:<4}\n".format(
-                "Obs #", y, "Resid", "Std Resid", "Type"))
-
-            temp = "{:<5} {:<8.4f} {:<10.4f} {:<10.4f} {:<4}\n"
-            for i, (r, h) in enumerate(zip(resS, H)):
-                weird = False
-                R, L = abs(r) > 2.5, h > threshold
-                if R or L:
-                    t = ""
-                    if R:
-                        t += "R"
-                    if L:
-                        t += "L"
-                    self.parent.output.AppendText(temp.format(i+1, Y[i], 
-                        res[i], resS[i], t))
-
-            fig, axes = plt.subplots(nrows=2, ncols=2)
-            plt.subplot(axes[0, 0])
-            stats.probplot(res, plot=plt)
-            plt.subplot(axes[1, 0])
-            sns.distplot(res)
-            plt.subplot(axes[0, 1])
-            plt.scatter(results.predict(), res)
-            """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
-            df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
-            sns.lmplot("Predicted", "Residual", df)
-            """
-
-            res.plot(ax=axes[1, 1])
-
+            self.parent.output.AppendText(self._olsSummary(results))
+            self.parent.output.AppendText(self._unusualObs(results))
+            self._residPlot(results)
             plt.show()
 
         dlg.Destroy()
+    
+    def _olsSummary(self, results):
+        s = results.summary(title="Linear Regression for " + results.model.data.ynames)
+        t0 = str(s.tables[0]).split("\n")[0]
+        t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
+        t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
+        return "\n" + t0 + "\n" + t1 + "\n" + t2 + "\n"
+
+    def _unusualObs(self, results):
+        Y, Xs = results.model.data.orig_endog, results.model.data.orig_exog
+        y = results.model.data.ynames
+        res, inf = results.norm_resid(), results.get_influence()
+        n, H = len(Y), inf.hat_matrix_diag
+        Hthresh = 2 * float(len(Xs) + 1) / n
+        # no idea how H or Hthresh are calculated. From wikipedia
+        resThres = 1.5 * stats.norm.ppf(1 - 1.0/n) # arbitrary resid threshold
+
+        temp = "{:<5} {:<8.4f} {:<10.4f} {:<4}\n"
+        out = "\nUnusual Observations (L for high leverage, R for high residual)\n"
+        out += "{:<5} {:<8} {:<10} {:<4}\n".format("Obs #", y, "Std. Resid", "Type")
+        print resThres
+        for i, (r, h) in enumerate(zip(res, H)):
+            weird = False
+            R, L = abs(r) > resThres, h > Hthresh
+            if R or L:
+                t = ""
+                if R:
+                    t += "R"
+                if L:
+                    t += "L"
+                out += temp.format(i+1, Y.ix[i][0], res[i], t)
+        return out
+
+
+    def _residPlot(self, results):
+        res = results.resid 
+        fig, axes = plt.subplots(nrows=2, ncols=2)
+        plt.subplot(axes[0, 0])
+        stats.probplot(res, plot=plt)
+        plt.subplot(axes[1, 0])
+        sns.distplot(res)
+        plt.subplot(axes[0, 1])
+        plt.scatter(results.predict(), res)
+        res.plot(ax=axes[1, 1])
+        """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
+        df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
+        sns.lmplot("Predicted", "Residual", df)
+        """
     def linRegR(self, event):
         # would have to mess with Patsy formula parser to get more powerful...
         # too much work
@@ -359,28 +364,9 @@ class StatsMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             mod = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
             results = mod.fit()
-            res = results.resid
-            s = results.summary()
-
-            t0 = str(s.tables[0]).split("\n")[0]
-            t1 = "\n".join(str(s.tables[0]).split("\n")[2:-1])
-            t2 = "\n".join(str(s.tables[1]).split("\n")[1:-1])
-            self.parent.output.AppendText("\n{}\n{}\n{}\n".format(t0, t1, t2))
-
-            fig, axes = plt.subplots(nrows=2, ncols=2)
-            plt.subplot(axes[0, 0])
-            stats.probplot(res, plot=plt)
-            plt.subplot(axes[1, 0])
-            sns.distplot(res)
-            plt.subplot(axes[0, 1])
-            plt.scatter(results.predict(), res)
-            """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
-            df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
-            sns.lmplot("Predicted", "Residual", df)
-            """
-
-            res.plot(ax=axes[1, 1])
-
+            self.parent.output.AppendText(self._olsSummary(results))
+            self.parent.output.AppendText(self._unusualObs(results))
+            self._residPlot(results)
             plt.show()
 
         dlg.Destroy()
