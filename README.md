@@ -21,5 +21,5 @@ OpenStat is an exploratory statistical software meant as a replacement for Minit
 * [scipy](http://www.scipy.org/)
 * [matplotlib](http://matplotlib.org/)
 * [pandas](http://pandas.pydata.org/)
-* [seaborn](http://stanford.edu/~mwaskom/software/seaborn/)
+* [seaborn (v 0.3 or greater)](http://stanford.edu/~mwaskom/software/seaborn/)
 * [statsmodels](http://statsmodels.sourceforge.net/)

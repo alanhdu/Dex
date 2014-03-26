@@ -300,7 +300,7 @@ class StatsMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
             data = self.parent.data[list(xs) + [y]].dropna()
-            Y = data[y]
+            Y = data[[y]]
             Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.OLS(Y, Xs).fit()
             self.parent.output.AppendText(self._olsSummary(results))
@@ -324,12 +324,11 @@ class StatsMenu(wx.Menu):
         n, H = len(Y), inf.hat_matrix_diag
         Hthresh = 2 * float(len(Xs) + 1) / n
         # no idea how H or Hthresh are calculated. From wikipedia
-        resThres = 1.5 * stats.norm.ppf(1 - 1.0/n) # arbitrary resid threshold
+        resThres = 1.2 * stats.norm.ppf(1 - 1.0/n) # arbitrary resid threshold
 
         temp = "{:<5} {:<8.4f} {:<10.4f} {:<4}\n"
         out = "\nUnusual Observations (L for high leverage, R for high residual)\n"
         out += "{:<5} {:<8} {:<10} {:<4}\n".format("Obs #", y, "Std. Resid", "Type")
-        print resThres
         for i, (r, h) in enumerate(zip(res, H)):
             weird = False
             R, L = abs(r) > resThres, h > Hthresh
@@ -347,16 +346,13 @@ class StatsMenu(wx.Menu):
         res = results.resid 
         fig, axes = plt.subplots(nrows=2, ncols=2)
         plt.subplot(axes[0, 0])
-        stats.probplot(res, plot=plt)
+        stats.probplot(res, plot=plt) # QQ plot
         plt.subplot(axes[1, 0])
-        sns.distplot(res)
+        sns.distplot(res)             # Histogram
         plt.subplot(axes[0, 1])
-        plt.scatter(results.predict(), res)
-        res.plot(ax=axes[1, 1])
-        """ Would be cool to use seaborn, but can't do it w/ subplot yet (can on github though)
-        df = pd.DataFrame({"Residual":res, "Predicted":results.predict()})
-        sns.lmplot("Predicted", "Residual", df)
-        """
+        sns.regplot(results.predict(), res, lowess=True, ax=axes[0, 1],
+                line_kws={"color":"black"})
+        res.plot(ax=axes[1, 1]) # Time series (residual v order)
     def linRegR(self, event):
         # would have to mess with Patsy formula parser to get more powerful...
         # too much work

@@ -95,7 +95,7 @@ class GraphDialog(wx.Dialog):
             g = list(ds.groupby(g).groups)
         else:
             for cs in self.GetName():
-                val.append(data[list(cs)].dropna())
+                val.append(data[list(cs)])
         return g, val
     def GetName(self):
         return self.cs.GetValue()

@@ -131,9 +131,14 @@ class GraphMenu(wx.Menu):
             groups, datas = dlg.GetValue(self.parent.data)
             if groups:
                 ds = self._groupLabels(ds, groups)
+
+            # convert dataframe to series to avoid seaborn error
+            for i in xrange(len(datas)):
+                datas[i] = datas[i][datas[i].columns[0]]
             dlg.Destroy()
 
             # TODO Allow user input for bandwidth
+            #sns.violinplot([self.parent.data[[ds[0]]]], names=ds)
             sns.violinplot(datas, names=ds)
             plt.show()
 
@@ -198,7 +203,7 @@ class GraphMenu(wx.Menu):
 
             try:
                 if ci < 100 and regress:
-                    sns.lmplot("x", "y", snData, color="group", ci=ci, order=order)
+                    sns.lmplot("x", "y", snData, hue="group", ci=ci, order=order)
                 else:
                     sns.lmplot("x", "y", snData, fit_reg=regress, ci=None, order=order)
                 plt.show()
@@ -212,7 +217,7 @@ class GraphMenu(wx.Menu):
     def createMatrix(self, event):
         # TODO Fix ugly gridlines. sns.setStyle('nogrid') failed
         dlg = GraphDialog(self.parent, "Matrix Plot Input", ("Select Data",), 
-                size=(500, 200), groups=False)
+                size=(500, 300), groups=False)
 
         if dlg.ShowModal() == wx.ID_OK:
             ds = [d[0] for d in dlg.GetName()]
