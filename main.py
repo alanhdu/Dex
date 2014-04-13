@@ -1,12 +1,13 @@
 import wx
 import wx.lib.sheet
-from Data import Data
+import wx.py
+from Data import Data, Data1
 from Stats import StatsMenu
 from Graphs import GraphMenu
 
 class MainWindow(wx.Frame):
     """ Master Window"""
-    output, sheet = None, None
+    output, sheet, shell = None, None, None
     def __init__(self, size=(1000, 900)):
         wx.Frame.__init__(self, None, title="OpenStat", size=size)
 
@@ -32,22 +33,31 @@ class MainWindow(wx.Frame):
         menubar.Append(graphMenu, "&Graphs")
         self.Show(True)
 
-        bsizer = wx.BoxSizer(wx.VERTICAL)
+        vsizer = wx.BoxSizer(wx.VERTICAL)
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.output = wx.TextCtrl(self, 
                 style=wx.TE_MULTILINE | wx.TE_READONLY)
         # use monospace font
         f = wx.Font(12, wx.MODERN, wx.NORMAL, wx.NORMAL)
         self.output.SetFont(f)
+        self.output.AppendText("Open a csv to begin\n")
+
+        # spreadsheet
+        self.sheet = Data1(self)
+        self.data = self.sheet
+        """
         self.sheet = wx.lib.sheet.CSheet(self)
         self.sheet.SetNumberRows(14)
         self.sheet.SetNumberCols(15)
         self.sheet.EnableEditing(False)
-        bsizer.Add(self.output, 1, wx.EXPAND)
-        bsizer.AddSpacer(30)
-        bsizer.Add(self.sheet, 1, wx.EXPAND)
+        """
+        vsizer.Add(self.output, 1, wx.EXPAND)
+        vsizer.AddSpacer(15)
+        vsizer.Add(self.sheet, 1, wx.EXPAND)
 
-        self.SetSizer(bsizer)
+        self.SetSizer(vsizer)
 
+        self.Maximize()
 
     def onExit(self, e):
         self.Close(True)
@@ -55,19 +65,10 @@ class MainWindow(wx.Frame):
         self.dirname = ""
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.csv", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.data = Data(dlg.GetPath(), self)
+            self.data.readFile(dlg.GetPath())
         dlg.Destroy()
-        self.sheet.Clear()
 
-        rows, cols = self.data.shape()
-        self.sheet.SetNumberCols(cols)
-        self.sheet.SetNumberRows(rows)
-
-        for i, name in enumerate(self.data.names()):
-            self.sheet.SetColLabelValue(i, name)
-            for j, val in enumerate(self.data[name]):
-                self.sheet.SetCellValue(j, i, str(val))
-
-app = wx.App(False)
-frame = MainWindow()
-app.MainLoop()
+if __name__ == "__main__":
+    app = wx.App(False)
+    frame = MainWindow()
+    app.MainLoop()

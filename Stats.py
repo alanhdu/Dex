@@ -1,5 +1,4 @@
 import wx
-from Data import Data
 from Dialogues import GraphDialog, StatTestDialog, SampleStats, SummaryStats, RegressDialog
 import numpy as np
 from scipy import stats
@@ -53,7 +52,7 @@ class StatsMenu(wx.Menu):
                 ("Select Data",), add=False)
 
         if dlg.ShowModal() == wx.ID_OK:
-            d = dlg.GetValue()[0][0]
+            d = dlg.GetName()[0][0]
             data = self.parent.data[d].dropna(axis=0)
 
             mean, std = data.mean(), data.std()
@@ -326,7 +325,7 @@ class StatsMenu(wx.Menu):
         # no idea how H or Hthresh are calculated. From wikipedia
         resThres = 1.2 * stats.norm.ppf(1 - 1.0/n) # arbitrary resid threshold
 
-        temp = "{:<5} {:<8.4f} {:<10.4f} {:<4}\n"
+        temp = "{:<5} {:<8.4g} {:<10.8g} {:<4}\n"
         out = "\nUnusual Observations (L for high leverage, R for high residual)\n"
         out += "{:<5} {:<8} {:<10} {:<4}\n".format("Obs #", y, "Std. Resid", "Type")
         for i, (r, h) in enumerate(zip(res, H)):
