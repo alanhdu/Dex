@@ -1,16 +1,16 @@
 import wx
 
 class ColumnSelect(wx.Panel):
-    queries, parent, columns, names = None, None, None, None
+    queries, parent, columns, names, sNames = None, None, None, None, None
     sizer = None
     def __init__(self, parent, data, queries, add=True):
         wx.Panel.__init__(self, parent)
         self.parent, self.columns, self.queries = parent, [], queries
 
-        vsize = wx.BoxSizer(wx.VERTICAL)
-        self.sizer = wx.GridSizer(rows=len(queries), cols=1)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.names = data.names()
+        # prevent overflow errors with long name lengths
+        self.sNames = [len(n) < 20 and n or n[:20] + "..." for n in self.names]
 
         if add:
             new = wx.Button(self, -1, "+ More Data Sets")
@@ -18,7 +18,7 @@ class ColumnSelect(wx.Panel):
             self.sizer.Add(new)
         else:
             # insert button's height of space
-            self.sizer.AddSpacer(wx.Button.GetDefaultSize()[1]) # 
+            self.sizer.AddSpacer(wx.Button.GetDefaultSize()[1])
 
         hsize = wx.GridSizer(cols=len(self.queries))
         for q in self.queries:
@@ -32,20 +32,21 @@ class ColumnSelect(wx.Panel):
         hsize = wx.GridSizer(cols=len(self.queries))
         new = []
         for q in self.queries:
-            new.append(wx.ComboBox(self, choices=[""] + list(self.names),
+            new.append(wx.ComboBox(self, choices=[""] + self.sNames,
                 style=wx.CB_DROPDOWN | wx.CB_READONLY))
             hsize.Add(new[-1], 1, flag=wx.EXPAND)
         self.columns.append(tuple(new))
         self.sizer.Add(hsize)
 
-        self.Layout()
         self.parent.Layout()
 
     def onClose(self, event):
         self.Close(True)
+    def get(self, abbrev):
+        return self.names[self.sNames.index(abbrev)]
 
     def GetValue(self):
-        return [tuple(d.GetValue() for d in c) for c in self.columns]
+        return [tuple(self.get(d.GetValue()) for d in c) for c in self.columns]
 
 # TODO implement some kind of global graph preferences
 class GraphDialog(wx.Dialog):
@@ -86,13 +87,14 @@ class GraphDialog(wx.Dialog):
         return ctrl
     def GetValue(self, data):
         val = []
-        g = self.GetGroup()
-        if g:
-            for cs in self.GetName():
-                ds = data[list(cs) + [g]]
-                grouped = ds.groupby(g)
-                val += [grouped.get_group(group)[list(cs)] for group in grouped.groups]
-            g = list(ds.groupby(g).groups)
+        group = self.GetGroup()
+        if group:
+            columns = self.GetName()
+            df = data[ [item for sub in columns for item in sub] + [group] ]
+            grouped=  df.groupby(group)
+            for cs in columns:
+                val += [grouped.get_group(g)[list(cs)] for g in grouped.groups]
+            g = [str(g) for g in grouped.groups]
         else:
             for cs in self.GetName():
                 val.append(data[list(cs)])

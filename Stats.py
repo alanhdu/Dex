@@ -3,6 +3,7 @@ from Dialogues import GraphDialog, StatTestDialog, SampleStats, SummaryStats, Re
 import numpy as np
 from scipy import stats
 from matplotlib import pyplot as plt
+import itertools
 import seaborn as sns
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
@@ -36,7 +37,10 @@ class StatsMenu(wx.Menu):
                 self.Append(wx.NewId(), "Linear Regression"))
         parent.Bind(wx.EVT_MENU, self.linRegR, 
                 self.Append(wx.NewId(), "Linear Regression (for R or Patsy aficionados)"))
+        parent.Bind(wx.EVT_MENU, self.subLinReg,
+                self.Append(wx.NewId(), "Best Subsets Regression"))
         self.AppendSeparator()
+
 
         # Classifiers
         self.AppendSeparator()
@@ -363,5 +367,32 @@ class StatsMenu(wx.Menu):
             self.parent.output.AppendText(self._unusualObs(results))
             self._residPlot(results)
             plt.show()
+
+        dlg.Destroy()
+    def subLinReg(self, event):
+        dlg = RegressDialog(self.parent, "Best Subsets Linear Regression") 
+        if dlg.ShowModal() == wx.ID_OK:
+            y, xs = dlg.GetValue()
+            data = self.parent.data[list(xs) + [y]].dropna()
+            Y = data[[y]]
+
+            subsets = (itertools.combinations(xs, n+1) for n in xrange(len(xs)))
+            results = []
+
+            for subset in itertools.chain.from_iterable(subsets):
+                Xs = sm.add_constant(data[list(subset)], prepend=False)
+                r = sm.OLS(Y, Xs).fit()
+                r2, r2_adj = r.rsquared, r.rsquared_adj
+                results.append( (subset, r2, r2_adj) )
+            # Get top 10 subsets by r^2 adjusted
+            results = sorted(results, key=lambda x: x[-1], reverse=True)[:10]
+
+            self.parent.output.AppendText("\nBest Subsets for Predicting {}\n".format(y))
+            self.parent.output.AppendText("# Vars |   r^2  | r^2 adj | Variables\n")
+            temp = "{:^7}|{:^8.2%}|{:^9.2%}| {}\n"
+            for r in results:
+                subset, r2, r2_adj = r
+                self.parent.output.AppendText(temp.format(len(subset), r2, r2_adj, subset))
+
 
         dlg.Destroy()

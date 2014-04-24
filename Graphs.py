@@ -79,7 +79,7 @@ class GraphMenu(wx.Menu):
                 ds = self._groupLabels(ds, groups)
                 newDs = []
                 for d in ds:
-                    newDs += [d + "-" + g for g in groups]
+                    newDs += [d + "-" + str(g) for g in groups]
                 ds = newDs
             dlg.Destroy()
 
