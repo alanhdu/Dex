@@ -221,9 +221,24 @@ class GraphMenu(wx.Menu):
 
         if dlg.ShowModal() == wx.ID_OK:
             ds = [d[0] for d in dlg.GetName()]
+            df = self.parent.data[ds]
+            n = len(ds)
             dlg.Destroy()
+                
+            """
+            fig, axes = plt.subplots(nrows=n, ncols=n)
+            for i, l1 in enumerate(ds):
+                for j, l2  in enumerate(ds):
+                    axes[j, i].grid(False)
+                    plt.subplot(axes[j, i])
+                    if i == j:
+                        sns.distplot(df[l1])
+                    else:
+                        plt.scatter(df[l1], df[l2])
+            """
 
-            pd.tools.plotting.scatter_matrix(self.parent.data[ds])
+
+            pd.scatter_matrix(df, grid=False)
             plt.show()
 
     def createInteraction(self, event):

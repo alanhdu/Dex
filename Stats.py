@@ -7,6 +7,7 @@ import itertools
 import seaborn as sns
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+import statsmodels.stats.outliers_influence
 import pandas as pd
 
 class StatsMenu(wx.Menu):
@@ -41,8 +42,11 @@ class StatsMenu(wx.Menu):
                 self.Append(wx.NewId(), "Best Subsets Regression"))
         self.AppendSeparator()
 
-
         # Classifiers
+        parent.Bind(wx.EVT_MENU, self.logReg, 
+                self.Append(wx.NewId(), "Logistic Regression"))
+        parent.Bind(wx.EVT_MENU, self.logRegR, 
+                self.Append(wx.NewId(), "Logistic Regression (for R or Patsy aficionados)"))
         self.AppendSeparator()
 
         # Nonparametric tests
@@ -361,8 +365,8 @@ class StatsMenu(wx.Menu):
         # too much work
         dlg = wx.TextEntryDialog(self.parent, "Enter the linear regression formula")
         if dlg.ShowModal() == wx.ID_OK:
-            mod = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
-            results = mod.fit()
+            model = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
+            results = model.fit()
             self.parent.output.AppendText(self._olsSummary(results))
             self.parent.output.AppendText(self._unusualObs(results))
             self._residPlot(results)
@@ -382,17 +386,41 @@ class StatsMenu(wx.Menu):
             for subset in itertools.chain.from_iterable(subsets):
                 Xs = sm.add_constant(data[list(subset)], prepend=False)
                 r = sm.OLS(Y, Xs).fit()
-                r2, r2_adj = r.rsquared, r.rsquared_adj
-                results.append( (subset, r2, r2_adj) )
+                o = statsmodels.stats.outliers_influence.OLSInfluence(r)
+                press, r2, r2_adj = o.ess_press, r.rsquared, r.rsquared_adj
+                results.append( (subset, press, r2, r2_adj) )
             # Get top 10 subsets by r^2 adjusted
             results = sorted(results, key=lambda x: x[-1], reverse=True)[:10]
 
             self.parent.output.AppendText("\nBest Subsets for Predicting {}\n".format(y))
-            self.parent.output.AppendText("# Vars |   r^2  | r^2 adj | Variables\n")
-            temp = "{:^7}|{:^8.2%}|{:^9.2%}| {}\n"
-            for r in results:
-                subset, r2, r2_adj = r
-                self.parent.output.AppendText(temp.format(len(subset), r2, r2_adj, subset))
+            self.parent.output.AppendText("# Vars |  r^2  | r^2 adj | PRESS | Variables\n")
+            temp = "{:^7}|{:^6.2%}|{:^9.2%}|{:^7}| {}\n"
+            for subset, press, r2, r2_adj in results:
+                self.parent.output.AppendText(temp.format(len(subset), r2, r2_adj, press, subset))
 
+        dlg.Destroy()
+    def logReg(self, event):
+        dlg = RegressDialog(self.parent, "Logistic Regression") 
+        if dlg.ShowModal() == wx.ID_OK:
+            y, xs = dlg.GetValue()
+            data = self.parent.data[list(xs) + [y]].dropna()
+            Y = data[[y]]
+            Xs = sm.add_constant(data[list(xs)], prepend=False)
+            results = sm.Logit(Y, Xs).fit()
+            self.parent.output.AppendText("\n" + str(results.summary()) + "\n")
+            sns.regplot(results.predict(), data[y], logistic=True, ci=False, y_jitter=0.2)
+            plt.show()
+
+        dlg.Destroy()
+    def logRegR(self, event):
+        # would have to mess with Patsy formula parser to get more powerful...
+        # too much work
+        dlg = wx.TextEntryDialog(self.parent, "Enter the linear regression formula")
+        if dlg.ShowModal() == wx.ID_OK:
+            model = smf.logit(formula=dlg.GetValue(), data=self.parent.data.data)
+            results = model.fit()
+            self.parent.output.AppendText("\n" + str(results.summary()) + "\n")
+            sns.regplot(results.predict(), model.endog, ci=False, y_jitter=0.2)
+            plt.show()
 
         dlg.Destroy()
