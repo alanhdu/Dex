@@ -1,6 +1,6 @@
 import wx
 from matplotlib import pyplot as plt
-from Dialogues import GraphDialog
+from Dialogues import GraphDialog, RegressDialog
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
 import numpy as np
@@ -36,6 +36,8 @@ class GraphMenu(wx.Menu):
                 self.Append(wx.NewId(), "Matrix Plot"))
         parent.Bind(wx.EVT_MENU, self.createInteraction, 
                 self.Append(wx.NewId(), "Interaction Plot"))
+        parent.Bind(wx.EVT_MENU, self.createMatrixInteract, 
+                self.Append(wx.NewId(), "Matrix Interaction Plot"))
 
         # Multivariate
         self.AppendSeparator()
@@ -184,6 +186,8 @@ class GraphMenu(wx.Menu):
         regress.SetValue(True)
         ci = dlg.AddSpinCtrl("Confidence (>=100 for None)", 0, 101, 95)
         order = dlg.AddSpinCtrl("Polynomial Degree", 1, 10, 1)
+        jitter = wx.CheckBox(dlg, label="Jitter?")
+        jitter.SetValue(False)
 
         regress.Bind(wx.EVT_CHECKBOX, 
             lambda e: ci.Enable(regress.GetValue()) and order.Enable(regress.GetValue()))
@@ -192,7 +196,8 @@ class GraphMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             ds = dlg.GetName()
             dlg.Destroy()
-            regress, ci, order = regress.GetValue(), ci.GetValue(), order.GetValue()
+            regress, ci = regress.GetValue(), ci.GetValue()
+            order, jitter = order.GetValue(), jitter.GetValue()
 
             data = self.parent.data[list({b for bs in ds for b in bs})].astype(float)
             snData = pd.DataFrame()
@@ -201,11 +206,19 @@ class GraphMenu(wx.Menu):
                 d = pd.DataFrame(d)
                 snData = snData.append(d, ignore_index=True)
 
+            if jitter:
+                xjitter = snData["x"].std() / 4
+                yjitter = snData["y"].std() / 4
+            else:
+                xjitter, yjitter = 0, 0
+
             try:
                 if ci < 100 and regress:
-                    sns.lmplot("x", "y", snData, hue="group", ci=ci, order=order)
+                    sns.lmplot("x", "y", snData, hue="group", ci=ci, order=order, 
+                            x_jitter=xjitter, y_jitter=yjitter)
                 else:
-                    sns.lmplot("x", "y", snData, fit_reg=regress, ci=None, order=order)
+                    sns.lmplot("x", "y", snData, fit_reg=regress, ci=None, order=order,
+                            x_jitter=xjitter, y_jitter=yjitter)
                 plt.show()
             except np.RankWarning:
                 dlg = wx.MessageDialog(self.parent, "Polynomial Degree Too High",
@@ -225,20 +238,32 @@ class GraphMenu(wx.Menu):
             n = len(ds)
             dlg.Destroy()
                 
-            """
-            fig, axes = plt.subplots(nrows=n, ncols=n)
-            for i, l1 in enumerate(ds):
-                for j, l2  in enumerate(ds):
-                    axes[j, i].grid(False)
-                    plt.subplot(axes[j, i])
-                    if i == j:
-                        sns.distplot(df[l1])
-                    else:
-                        plt.scatter(df[l1], df[l2])
-            """
-
-
             pd.scatter_matrix(df, grid=False)
+            plt.show()
+    def createMatrixInteract(self, event):
+        dlg = RegressDialog(self.parent, "Matrix Interaction Plot") 
+        if dlg.ShowModal() == wx.ID_OK:
+            y, xs = dlg.GetValue()
+            data = self.parent.data[list(xs) + [y]].dropna()
+            df = data[list(xs)]
+
+            fig, axes = plt.subplots(nrows=len(xs), ncols=len(xs))
+            for i, l1 in enumerate(df):
+                for j, l2  in enumerate(df):
+                    ax = axes[j, i]
+                    ax.grid(False)
+                    plt.subplot(ax)
+                    if i == j:
+                        sns.regplot(data[l1], data[y], ax=ax)
+                    elif i < j:
+                        sns.interactplot(l1, l2, y, data, ax=ax)
+                    print j, i, l1, l2
+
+                    if i != 0 and j != 0:
+                        ax.yaxis.set_visible(False)
+                    if j != len(xs) - 1:
+                        ax.xaxis.set_visible(False)
+
             plt.show()
 
     def createInteraction(self, event):
@@ -270,7 +295,7 @@ class GraphMenu(wx.Menu):
 
             for x1, x2 in ds:
                 temp = data[[x1, x2]].dropna(axis=0)
-                sns.kdeplot(temp)
+                sns.kdeplot(temp, shade=fill)
             plt.show()
 
     def create3DScatter(self, event):
