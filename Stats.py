@@ -394,7 +394,7 @@ class StatsMenu(wx.Menu):
 
             self.parent.output.AppendText("\nBest Subsets for Predicting {}\n".format(y))
             self.parent.output.AppendText("# Vars |  r^2  | r^2 adj | PRESS | Variables\n")
-            temp = "{:^7}|{:^6.2%}|{:^9.2%}|{:^7}| {}\n"
+            temp = "{:^7}|{:^7.2%}|{:^9.2%}|{:^7}| {}\n"
             for subset, press, r2, r2_adj in results:
                 self.parent.output.AppendText(temp.format(len(subset), r2, r2_adj, press, subset))
 

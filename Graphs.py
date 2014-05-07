@@ -184,10 +184,11 @@ class GraphMenu(wx.Menu):
                 size=(700, 200), groups=False)
         regress = wx.CheckBox(dlg, label="Add Regression Polynomial?")
         regress.SetValue(True)
-        ci = dlg.AddSpinCtrl("Confidence (>=100 for None)", 0, 101, 95)
-        order = dlg.AddSpinCtrl("Polynomial Degree", 1, 10, 1)
         jitter = wx.CheckBox(dlg, label="Jitter?")
         jitter.SetValue(False)
+        dlg.Add(jitter)
+        ci = dlg.AddSpinCtrl("Confidence (>=100 for None)", 0, 101, 95)
+        order = dlg.AddSpinCtrl("Polynomial Degree", 1, 10, 1)
 
         regress.Bind(wx.EVT_CHECKBOX, 
             lambda e: ci.Enable(regress.GetValue()) and order.Enable(regress.GetValue()))
@@ -242,8 +243,11 @@ class GraphMenu(wx.Menu):
             plt.show()
     def createMatrixInteract(self, event):
         dlg = RegressDialog(self.parent, "Matrix Interaction Plot") 
+        log = wx.CheckBox(dlg, label="Logistic Fit?")
+        dlg.Add(log)
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
+            log = log.GetValue()
             data = self.parent.data[list(xs) + [y]].dropna()
             df = data[list(xs)]
 
@@ -254,9 +258,10 @@ class GraphMenu(wx.Menu):
                     ax.grid(False)
                     plt.subplot(ax)
                     if i == j:
-                        sns.regplot(data[l1], data[y], ax=ax)
+                        sns.regplot(data[l1], data[y], ax=ax),
+                        # would like to do logistic plot, but takes too long
                     elif i < j:
-                        sns.interactplot(l1, l2, y, data, ax=ax)
+                        sns.interactplot(l1, l2, y, data, ax=ax, logistic=log)
                     print j, i, l1, l2
 
                     if i != 0 and j != 0:
@@ -271,15 +276,19 @@ class GraphMenu(wx.Menu):
                 size=(700, 200), add=False, groups=False)
         fill = wx.CheckBox(dlg, label="Fill")
         fill.SetValue(True)
+        log = wx.CheckBox(dlg, label="Logistic Fit?")
         dlg.Add(fill)
+        dlg.Add(log)
 
         if dlg.ShowModal() == wx.ID_OK:
             (x1, x2, y), fill = dlg.GetName()[0], fill.GetValue()
+            log = log.GetValue()
             data = self.parent.data[[x1, x2, y]].astype(float)
             dlg.Destroy()
 
             temp = data[[x1, x2, y]].dropna(axis=0)
-            sns.interactplot(x1, x2, y, temp, cmap="coolwarm", filled=fill)
+            sns.interactplot(x1, x2, y, temp, cmap="coolwarm", filled=fill,
+                    logistic=log)
 
             plt.show()
     def createBiDensity(self, event):

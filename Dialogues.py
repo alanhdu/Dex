@@ -248,7 +248,6 @@ class StatTestDialog(wx.Dialog):
             return (out, float(self.Ho.GetValue()), float(self.c.GetValue()))
         else:
             return (out, None, float(self.c.GetValue()))
-
     def onHypothesis(self, event):
         self.Ho.Enable(self.hypo.GetValue())
     def onSample(self, event):
@@ -259,7 +258,7 @@ class StatTestDialog(wx.Dialog):
         self.stats.Enable(True)
 
 class RegressDialog(wx.Dialog):
-    parent, xs, y = None, None, None
+    options, parent, xs, y = None, None, None, None
     def __init__(self, parent, title, size=(700, 300)):
         wx.Dialog.__init__(self, parent, -1, title, size=size)
         self.parent = parent
@@ -267,10 +266,12 @@ class RegressDialog(wx.Dialog):
                 queries=("Select Explanatory Variable(s)",), add=True)
         self.y = ColumnSelect(self, parent.data, 
                     queries=("Select Dependent Variable",), add=False)
+        self.options = wx.BoxSizer(wx.VERTICAL)
 
         vsize = wx.BoxSizer(wx.VERTICAL)
         hsize = wx.BoxSizer(wx.HORIZONTAL)
-        hsize.Add(self.y, 1, wx.EXPAND)
+        self.options.Add(self.y, 1, wx.EXPAND)
+        hsize.Add(self.options, 1, wx.EXPAND)
         hsize.AddSpacer(10)
         hsize.Add(self.xs, 1, wx.EXPAND)
 
@@ -281,3 +282,7 @@ class RegressDialog(wx.Dialog):
 
     def GetValue(self):
         return (self.y.GetValue()[0][0], zip(*self.xs.GetValue())[0])
+    def Add(self, *args, **kwargs):
+        self.options.Add(*args, **kwargs)
+        self.options.Layout()
+        self.Layout()

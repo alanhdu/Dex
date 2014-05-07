@@ -6,6 +6,7 @@ from Stats import StatsMenu
 from Graphs import GraphMenu
 import sys
 import traceback
+from matplotlib import pyplot as plt
 
 class MainWindow(wx.Frame):
     """ Master Window"""
@@ -72,6 +73,7 @@ class MainWindow(wx.Frame):
     def onError(self, t, value, trace):
         message = "\n".join(traceback.format_exception(t, value, trace))
         dlg = wx.MessageDialog(self, message, "Error!", wx.OK|wx.ICON_ERROR)
+        plt.clf() # clear figure
         dlg.ShowModal()
 
 if __name__ == "__main__":
