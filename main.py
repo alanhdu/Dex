@@ -9,7 +9,6 @@ import sys
 import traceback
 from matplotlib import pyplot as plt
 
-
 class MainWindow(wx.Frame):
     """ Master Window"""
     output, sheet, scripter = None, None, None
@@ -49,7 +48,7 @@ class MainWindow(wx.Frame):
         # use monospace font
         f = wx.Font(12, wx.MODERN, wx.NORMAL, wx.NORMAL)
         self.output.SetFont(f)
-        self.output.setStatusText("Open a csv to begin\n")
+        self.write("Open a csv to begin\n")
 
         # spreadsheet
         self.sheet = Data(self)
@@ -70,6 +69,8 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.data.readFile(dlg.GetPath())
         dlg.Destroy()
+    def write(self, txt):
+        self.output.AppendText(txt)
     def onError(self, t, value, trace):
         message = "".join(traceback.format_exception(t, value, trace))
         dlg = wx.MessageDialog(self, message, "Error!", wx.OK|wx.ICON_ERROR)

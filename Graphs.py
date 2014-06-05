@@ -1,6 +1,7 @@
 import wx
 from matplotlib import pyplot as plt
 from Dialogues import GraphDialog, RegressDialog
+from Settings import settings
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
 import numpy as np
@@ -9,8 +10,6 @@ import pandas as pd
 import warnings
 
 warnings.simplefilter("error", np.RankWarning)
-sns.set(style="whitegrid")
-
 class GraphMenu(wx.Menu):
     def __init__(self, parent):
         wx.Menu.__init__(self)
@@ -74,7 +73,6 @@ class GraphMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             ds = [d[0] for d in dlg.GetName()]
             # account for grouping
-            print self.parent.data
             groups, datas = dlg.GetValue(self.parent.data)
             bars, density = bars.GetValue(), density.GetValue() 
             bandwidth = np.exp(-0.2 * bandwidth.GetValue())
@@ -123,7 +121,7 @@ class GraphMenu(wx.Menu):
                 ds = self._groupLabels(ds, groups)
             dlg.Destroy()
 
-            sns.boxplot(datas, names=ds)
+            sns.boxplot(datas, names=ds, color=settings["color"])
             plt.show()
 
     def createViolin(self, event):
@@ -142,7 +140,7 @@ class GraphMenu(wx.Menu):
 
             # TODO Allow user input for bandwidth
             #sns.violinplot([self.parent.data[[ds[0]]]], names=ds)
-            sns.violinplot(datas, names=ds)
+            sns.violinplot(datas, names=ds, color=settings["color"])
             plt.show()
 
     def createQQ(self, event):
@@ -262,8 +260,8 @@ class GraphMenu(wx.Menu):
                         sns.regplot(data[l1], data[y], ax=ax),
                         # would like to do logistic plot, but takes too long
                     elif i < j:
-                        sns.interactplot(l1, l2, y, data, ax=ax, logistic=log)
-                    print j, i, l1, l2
+                        sns.interactplot(l1, l2, y, data, ax=ax, logistic=log,
+                                cmap=settings["cmap"])
 
                     if i != 0 and j != 0:
                         ax.yaxis.set_visible(False)
@@ -288,7 +286,7 @@ class GraphMenu(wx.Menu):
             dlg.Destroy()
 
             temp = data[[x1, x2, y]]
-            sns.interactplot(x1, x2, y, temp, cmap="coolwarm", filled=fill,
+            sns.interactplot(x1, x2, y, temp, cmap=settings["cmap"], filled=fill,
                     logistic=log)
 
             plt.show()

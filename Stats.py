@@ -72,8 +72,8 @@ class StatsMenu(wx.Menu):
             out = template1.format("Mean", "Std Dev", "Q1", "Med", "Q3", "IQR")
             out += template2.format(mean, std, q1, median, q3, q3-q1)
 
-            self.parent.output.AppendText("\nDescriptive Statistics for " + d)
-            self.parent.output.AppendText("\n" + out)
+            self.parent.write("\nDescriptive Statistics for " + d)
+            self.parent.write("\n" + out)
 
         dlg.Destroy()
 
@@ -120,7 +120,7 @@ class StatsMenu(wx.Menu):
             title = "\n1-Proportion Z-Test"
             if name is not None:
                 title += " for {}".format(name)
-            self.parent.output.AppendText("\n".join([title, header, st]) + "\n")
+            self.parent.write("\n".join([title, header, st]) + "\n")
         dlg.Destroy()
     def ztest2(self, event):
         dlg = StatTestDialog(self.parent, "2-Proportion Z-Test", 
@@ -174,7 +174,7 @@ class StatsMenu(wx.Menu):
             title = "\n2-Proportion T-Test"
             if names is not None:
                 title += " Between {} and {}".format(names[0], names[1])
-            self.parent.output.AppendText(title + "\n" + output)
+            self.parent.write(title + "\n" + output)
 
         dlg.Destroy()
     def ttest1(self, event):
@@ -213,7 +213,7 @@ class StatsMenu(wx.Menu):
             title = "\n1-Sample T-Test"
             if name is not None:
                 title += " for {}".format(name)
-            self.parent.output.AppendText("\n".join([title, header, st]) + "\n")
+            self.parent.write("\n".join([title, header, st]) + "\n")
         dlg.Destroy()
 
     def ttest2(self, event):
@@ -261,7 +261,7 @@ class StatsMenu(wx.Menu):
             title = "\n2-Sample T-Test"
             if names is not None:
                 title += " Between {} and {}".format(names[0], names[1])
-            self.parent.output.AppendText(title + output)
+            self.parent.write(title + output)
         dlg.Destroy()
     def ttest_matched(self, event):
         dlg = StatTestDialog(self.parent, "Matched Pair T-Test", num=2,
@@ -296,7 +296,7 @@ class StatsMenu(wx.Menu):
             header += "{:<10} {:<10}".format("t score", "p-value")
             st += "{:<10.3f} {:<10.4f}".format(t, p)
             output = "\nMatched Pair T-Test Between {} and {}\n{}\n{}\n"
-            self.parent.output.AppendText(output.format(info[0][0], info[1][0], header, st))
+            self.parent.write(output.format(info[0][0], info[1][0], header, st))
 
             sns.distplot(data.astype(float), 
                     kde_kws={"label":"{0} - {1}".format(info[0][0], info[1][0])})
@@ -310,8 +310,8 @@ class StatsMenu(wx.Menu):
             Y = data[[y]]
             Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.OLS(Y, Xs).fit()
-            self.parent.output.AppendText(self._olsSummary(results))
-            self.parent.output.AppendText(self._unusualObs(results))
+            self.parent.write(self._olsSummary(results))
+            self.parent.write(self._unusualObs(results))
             self._residPlot(results)
             plt.show()
 
@@ -367,8 +367,8 @@ class StatsMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             model = smf.ols(formula=dlg.GetValue(), data=self.parent.data.data)
             results = model.fit()
-            self.parent.output.AppendText(self._olsSummary(results))
-            self.parent.output.AppendText(self._unusualObs(results))
+            self.parent.write(self._olsSummary(results))
+            self.parent.write(self._unusualObs(results))
             self._residPlot(results)
             plt.show()
 
@@ -392,11 +392,11 @@ class StatsMenu(wx.Menu):
             # Get top 10 subsets by r^2 adjusted
             results = sorted(results, key=lambda x: x[-1], reverse=True)[:10]
 
-            self.parent.output.AppendText("\nBest Subsets for Predicting {}\n".format(y))
-            self.parent.output.AppendText("# Vars |  r^2  | r^2 adj | PRESS | Variables\n")
+            self.parent.write("\nBest Subsets for Predicting {}\n".format(y))
+            self.parent.write("# Vars |  r^2  | r^2 adj | PRESS | Variables\n")
             temp = "{:^7}|{:^7.2%}|{:^9.2%}|{:^7}| {}\n"
             for subset, press, r2, r2_adj in results:
-                self.parent.output.AppendText(temp.format(len(subset), r2, r2_adj, press, subset))
+                self.parent.write(temp.format(len(subset), r2, r2_adj, press, subset))
 
         dlg.Destroy()
     def logReg(self, event):
@@ -407,7 +407,7 @@ class StatsMenu(wx.Menu):
             Y = data[[y]]
             Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.Logit(Y, Xs).fit()
-            self.parent.output.AppendText("\n" + str(results.summary()) + "\n")
+            self.parent.write("\n" + str(results.summary()) + "\n")
             sns.regplot(results.predict(), data[y], logistic=True, ci=False, y_jitter=0.2)
             plt.show()
 
@@ -419,7 +419,7 @@ class StatsMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             model = smf.logit(formula=dlg.GetValue(), data=self.parent.data.data)
             results = model.fit()
-            self.parent.output.AppendText("\n" + str(results.summary()) + "\n")
+            self.parent.write("\n" + str(results.summary()) + "\n")
             sns.regplot(results.predict(), model.endog, ci=False, y_jitter=0.2)
             plt.show()
 

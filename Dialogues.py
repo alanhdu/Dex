@@ -11,9 +11,10 @@ class ColumnSelect(wx.Panel):
         self.names = data.names()
         # prevent overflow errors with long name lengths
         self.sNames = [len(n) < 20 and n or n[:20] + "..." for n in self.names]
+        self.sNames = [str(i) + " " + s for i, s in enumerate(self.sNames)]
 
         if add:
-            new = wx.Button(self, -1, "+ More Data Sets")
+            new = wx.Button(self, label="+ More Data Sets")
             new.Bind(wx.EVT_BUTTON, self.moreChoices)
             self.sizer.Add(new)
         else:
@@ -45,8 +46,6 @@ class ColumnSelect(wx.Panel):
     def get(self, abbrev):
         if abbrev:
             return self.names[self.sNames.index(abbrev)]
-        else:
-            return None
     def GetValue(self):
         return [tuple(self.get(d.GetValue()) for d in c) 
                 for c in self.columns]
@@ -65,12 +64,13 @@ class GraphDialog(wx.Dialog):
             self.group = None
 
         vsize = wx.BoxSizer(wx.VERTICAL)
-        self.hsize = wx.BoxSizer(wx.HORIZONTAL)
-        self.hsize.Add(self.options)
+        self.hsize  = wx.BoxSizer(wx.HORIZONTAL)
+        #self.hsize = wx.GridSizer(rows=1, cols=2)
+        self.hsize.Add(self.options, 0)
         self.hsize.AddSpacer(10)
         self.hsize.Add(self.cs, 1, wx.EXPAND)
-        vsize.Add(self.hsize, 1, wx.EXPAND)
 
+        vsize.Add(self.hsize, 1, wx.EXPAND)
         vsize.Add(self.CreateSeparatedButtonSizer(flags=wx.OK | wx.CANCEL))
         self.SetSizer(vsize)
         self.Centre()
@@ -108,8 +108,6 @@ class GraphDialog(wx.Dialog):
     def GetGroup(self):
         if self.group:
             return self.group.GetValue()[0][0]
-        else:
-            return None
 
 class SummaryStats(wx.Panel):
     sizer, statitics = None, None
@@ -290,3 +288,62 @@ class RegressDialog(wx.Dialog):
         self.options.Add(*args, **kwargs)
         self.options.Layout()
         self.Layout()
+
+class GraphSettings(wx.Dialog):
+    def __init__(self, parent, kwargs, size=(700, 300)):
+        wx.Dialog.__init__(self, parent, -1, "Graph Settings", size=size)
+        vsize = wx.BoxSizer(wx.VERTICAL)
+        hsize = wx.BoxSizer(wx.HORIZONTAL)
+        fontOp = wx.GridSizer(2, 2)
+        colorOp = wx.GridSizer(2, 2)
+
+        snsStyles = ["dark", "white", "ticks", "darkgrid", "whitegrid"]
+        self.snsStyle = wx.ComboBox(self, choices=snsStyles, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.snsStyle.SetValue(kwargs["style"])
+        colorOp.Add(wx.StaticText(self, label="Seaborn Style"))
+        colorOp.Add(self.snsStyle)
+
+        snsColors = ["Greys", "pastel", "bright", "muted", "deep", "dark", "colorblind"]
+        self.snsColor = wx.ComboBox(self, choices=snsColors, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.snsColor.SetValue(kwargs["color"])
+        colorOp.Add(wx.StaticText(self, label="Color Palette"))
+        colorOp.Add(self.snsColor)
+
+        snsCmaps = ["coolwarm", "Greys"]
+        self.snsCmap = wx.ComboBox(self, choices=snsCmaps, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.snsCmap.SetValue(kwargs["cmap"])
+        colorOp.Add(wx.StaticText(self, label="Color Map (for interactplot)"))
+        colorOp.Add(self.snsCmap)
+        hsize.Add(colorOp)
+
+        self.titleSize = wx.SpinCtrl(self, min=1, max=100, initial=kwargs["Title Size"])
+        fontOp.Add(wx.StaticText(self, label="Title Font Size"))
+        fontOp.Add(self.titleSize)
+
+        self.axisSize = wx.SpinCtrl(self, min=1, max=100, initial=kwargs["Axis Size"])
+        fontOp.Add(wx.StaticText(self, label="Axis Font Size"))
+        fontOp.Add(self.axisSize)
+
+        self.legendSize = wx.SpinCtrl(self, min=1, max=100, initial=kwargs["Legend Size"])
+        fontOp.Add(wx.StaticText(self, label="Legend Font Size"))
+        fontOp.Add(self.legendSize)
+
+        self.tickSize = wx.SpinCtrl(self, min=1, max=100, initial=kwargs["Tick Size"])
+        fontOp.Add(wx.StaticText(self, label="Tick Font Size"))
+        fontOp.Add(self.tickSize)
+
+        hsize.Add(fontOp)
+
+        vsize.Add(hsize)
+        vsize.Add(self.CreateSeparatedButtonSizer(flags=wx.OK))
+        self.SetSizer(vsize)
+    def GetValue(self):
+        return {"style":self.snsStyle.GetValue(), 
+                "color":self.snsColor.GetValue(),
+                "cmap":self.snsCmap.GetValue(),
+                "Title Size":self.titleSize.GetValue(),
+                "Axis Size":self.axisSize.GetValue(),
+                "Legend Size":self.legendSize.GetValue(),
+                "Tick Size":self.tickSize.GetValue(),
+                }
+        pass
