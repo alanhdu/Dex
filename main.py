@@ -1,16 +1,18 @@
 import wx
 import wx.lib.sheet
 import wx.py
-from Data import Data, Data1
+from Data import Data
 from Stats import StatsMenu
 from Graphs import GraphMenu
+from Settings import SettingsMenu
 import sys
 import traceback
 from matplotlib import pyplot as plt
 
+
 class MainWindow(wx.Frame):
     """ Master Window"""
-    output, sheet, shell = None, None, None
+    output, sheet, scripter = None, None, None
     def __init__(self, size=(1000, 900)):
         wx.Frame.__init__(self, None, title="OpenStat", size=size)
 
@@ -34,32 +36,30 @@ class MainWindow(wx.Frame):
 
         graphMenu = GraphMenu(self)
         menubar.Append(graphMenu, "&Graphs")
+
+        settingsMenu = SettingsMenu(self)
+        menubar.Append(settingsMenu, "&Settings")
         self.Show(True)
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        #self.output = wx.py.shell.Shell(self)
         self.output = wx.TextCtrl(self, 
                 style=wx.TE_MULTILINE | wx.TE_READONLY)
         # use monospace font
         f = wx.Font(12, wx.MODERN, wx.NORMAL, wx.NORMAL)
         self.output.SetFont(f)
-        self.output.AppendText("Open a csv to begin\n")
+        self.output.setStatusText("Open a csv to begin\n")
 
         # spreadsheet
-        self.sheet = Data1(self)
+        self.sheet = Data(self)
         self.data = self.sheet
-        """
-        self.sheet = wx.lib.sheet.CSheet(self)
-        self.sheet.SetNumberRows(14)
-        self.sheet.SetNumberCols(15)
-        self.sheet.EnableEditing(False)
-        """
+
         vsizer.Add(self.output, 1, wx.EXPAND)
         vsizer.AddSpacer(15)
         vsizer.Add(self.sheet, 1, wx.EXPAND)
 
         self.SetSizer(vsizer)
-
         self.Maximize()
 
     def onExit(self, e):
@@ -71,8 +71,9 @@ class MainWindow(wx.Frame):
             self.data.readFile(dlg.GetPath())
         dlg.Destroy()
     def onError(self, t, value, trace):
-        message = "\n".join(traceback.format_exception(t, value, trace))
+        message = "".join(traceback.format_exception(t, value, trace))
         dlg = wx.MessageDialog(self, message, "Error!", wx.OK|wx.ICON_ERROR)
+        print message
         plt.clf() # clear figure
         dlg.ShowModal()
 

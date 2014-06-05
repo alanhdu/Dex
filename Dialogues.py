@@ -43,10 +43,13 @@ class ColumnSelect(wx.Panel):
     def onClose(self, event):
         self.Close(True)
     def get(self, abbrev):
-        return self.names[self.sNames.index(abbrev)]
-
+        if abbrev:
+            return self.names[self.sNames.index(abbrev)]
+        else:
+            return None
     def GetValue(self):
-        return [tuple(self.get(d.GetValue()) for d in c) for c in self.columns]
+        return [tuple(self.get(d.GetValue()) for d in c) 
+                for c in self.columns]
 
 # TODO implement some kind of global graph preferences
 class GraphDialog(wx.Dialog):
@@ -98,6 +101,7 @@ class GraphDialog(wx.Dialog):
         else:
             for cs in self.GetName():
                 val.append(data[list(cs)])
+            g = None
         return g, val
     def GetName(self):
         return self.cs.GetValue()

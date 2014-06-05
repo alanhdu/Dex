@@ -74,6 +74,7 @@ class GraphMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             ds = [d[0] for d in dlg.GetName()]
             # account for grouping
+            print self.parent.data
             groups, datas = dlg.GetValue(self.parent.data)
             bars, density = bars.GetValue(), density.GetValue() 
             bandwidth = np.exp(-0.2 * bandwidth.GetValue())
@@ -248,7 +249,7 @@ class GraphMenu(wx.Menu):
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
             log = log.GetValue()
-            data = self.parent.data[list(xs) + [y]].dropna()
+            data = self.parent.data[list(xs) + [y]]
             df = data[list(xs)]
 
             fig, axes = plt.subplots(nrows=len(xs), ncols=len(xs))
@@ -286,7 +287,7 @@ class GraphMenu(wx.Menu):
             data = self.parent.data[[x1, x2, y]].astype(float)
             dlg.Destroy()
 
-            temp = data[[x1, x2, y]].dropna(axis=0)
+            temp = data[[x1, x2, y]]
             sns.interactplot(x1, x2, y, temp, cmap="coolwarm", filled=fill,
                     logistic=log)
 
@@ -303,7 +304,7 @@ class GraphMenu(wx.Menu):
             dlg.Destroy()
 
             for x1, x2 in ds:
-                temp = data[[x1, x2]].dropna(axis=0)
+                temp = data[[x1, x2]]
                 sns.kdeplot(temp, shade=fill)
             plt.show()
 

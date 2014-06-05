@@ -61,7 +61,7 @@ class StatsMenu(wx.Menu):
 
         if dlg.ShowModal() == wx.ID_OK:
             d = dlg.GetName()[0][0]
-            data = self.parent.data[d].dropna(axis=0)
+            data = self.parent.data[d]
 
             mean, std = data.mean(), data.std()
             median = np.median(data)
@@ -90,7 +90,7 @@ class StatsMenu(wx.Menu):
                 n, count = int(info[0]), int(info[1])
             except ValueError:
                 name, evt = info
-                data = self.parent.data[name].dropna()
+                data = self.parent.data[name]
                 n , count = len(data), len(data[data == evt])
 
             if count < 10 or n - count < 10:
@@ -141,7 +141,7 @@ class StatsMenu(wx.Menu):
                 d1, evt1 = info[0]
                 d2, evt2 = info[1]
                 names = (d1, d2)
-                data1, data2 = self.parent.data[d1].dropna(), self.parent.data[d2].dropna()
+                data1, data2 = self.parent.data[d1], self.parent.data[d2]
                 n1 , count1 = len(data1), len(data1[data1 == evt1])
                 n2 , count2 = len(data2), len(data2[data2 == evt2])
 
@@ -188,7 +188,7 @@ class StatsMenu(wx.Menu):
             try: # works for summary statistics
                 n, mean, std = int(info[0]), float(info[1]), float(info[2])
             except ValueError:
-                data = self.parent.data[info[0]].dropna()
+                data = self.parent.data[info[0]]
                 name = info[0]
                 n, mean, std = len(data), data.mean(), data.std()
 
@@ -234,7 +234,7 @@ class StatsMenu(wx.Menu):
             except ValueError:
                 ds = self.parent.data[info[0] + info[1]]
                 names = info[0][0], info[1][0]
-                data1, data2 = ds[info[0][0]].dropna(), ds[info[1][0]].dropna()
+                data1, data2 = ds[info[0][0]], ds[info[1][0]]
                 n1, mean1, std1 = len(data1), data1.mean(), data1.std()
                 n2, mean2, std2 = len(data2), data2.mean(), data2.std()
             se1, se2 = std1 / np.sqrt(n1), std2 / np.sqrt(n2)
@@ -278,7 +278,7 @@ class StatsMenu(wx.Menu):
 
             data1 = self.parent.data[info[0][0]]
             data2 = self.parent.data[info[1][0]]
-            data = (data1 - data2).dropna()
+            data = (data1 - data2)
             n, mean, std = len(data), data.mean(), data.std()
 
             se = std / np.sqrt(n)
@@ -306,7 +306,7 @@ class StatsMenu(wx.Menu):
         dlg = RegressDialog(self.parent, "Linear Regression") 
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
-            data = self.parent.data[list(xs) + [y]].dropna()
+            data = self.parent.data[list(xs) + [y]]
             Y = data[[y]]
             Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.OLS(Y, Xs).fit()
@@ -377,7 +377,7 @@ class StatsMenu(wx.Menu):
         dlg = RegressDialog(self.parent, "Best Subsets Linear Regression") 
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
-            data = self.parent.data[list(xs) + [y]].dropna()
+            data = self.parent.data[list(xs) + [y]]
             Y = data[[y]]
 
             subsets = (itertools.combinations(xs, n+1) for n in xrange(len(xs)))
@@ -403,7 +403,7 @@ class StatsMenu(wx.Menu):
         dlg = RegressDialog(self.parent, "Logistic Regression") 
         if dlg.ShowModal() == wx.ID_OK:
             y, xs = dlg.GetValue()
-            data = self.parent.data[list(xs) + [y]].dropna()
+            data = self.parent.data[list(xs) + [y]]
             Y = data[[y]]
             Xs = sm.add_constant(data[list(xs)], prepend=False)
             results = sm.Logit(Y, Xs).fit()
