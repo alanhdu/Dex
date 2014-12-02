@@ -13,7 +13,7 @@ class MainWindow(wx.Frame):
     """ Master Window"""
     output, sheet, scripter = None, None, None
     def __init__(self, size=(1000, 900)):
-        wx.Frame.__init__(self, None, title="OpenStat", size=size)
+        wx.Frame.__init__(self, None, title="Dex", size=size)
 
         menubar = wx.MenuBar()
         self.SetMenuBar(menubar)

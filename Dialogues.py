@@ -294,8 +294,8 @@ class GraphSettings(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, "Graph Settings", size=size)
         vsize = wx.BoxSizer(wx.VERTICAL)
         hsize = wx.BoxSizer(wx.HORIZONTAL)
-        fontOp = wx.GridSizer(2, 2)
-        colorOp = wx.GridSizer(2, 2)
+        fontOp = wx.GridSizer(0, 2)
+        colorOp = wx.GridSizer(0, 2)
 
         snsStyles = ["dark", "white", "ticks", "darkgrid", "whitegrid"]
         self.snsStyle = wx.ComboBox(self, choices=snsStyles, style=wx.CB_DROPDOWN | wx.CB_READONLY)

@@ -331,7 +331,10 @@ class StatsMenu(wx.Menu):
         n, H = len(Y), inf.hat_matrix_diag
         Hthresh = 2 * float(len(Xs) + 1) / n
         # no idea how H or Hthresh are calculated. From wikipedia
-        resThres = 1.2 * stats.norm.ppf(1 - 1.0/n) # arbitrary resid threshold
+        # arbitrary residual threshold
+        resThres = max(1.2 * stats.norm.ppf(1 - 1.0/n), np.percentile(res, 95))
+
+        
 
         temp = "{:<5} {:<8.4g} {:<10.8g} {:<4}\n"
         out = "\nUnusual Observations (L for high leverage, R for high residual)\n"
